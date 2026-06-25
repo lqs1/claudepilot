@@ -130,6 +130,9 @@ async def _ensure_session_running(
     merged = {**_default_settings, **(settings or {})}
     model = merged.get("model") or None
     permission_mode = merged.get("permission_mode", "acceptEdits")
+    effort = merged.get("effort") or None
+    max_turns = merged.get("max_turns")
+    tools_enabled = bool(merged.get("tools_enabled", True))
 
     try:
         await session_manager.start_session(
@@ -138,6 +141,9 @@ async def _ensure_session_running(
             language=language,
             model=model,
             permission_mode=permission_mode,
+            effort=effort,
+            max_turns=max_turns,
+            tools_enabled=tools_enabled,
             initial_message=initial_message,
         )
         logger.info(

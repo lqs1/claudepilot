@@ -123,6 +123,7 @@ export interface Settings {
   effort: string;
   permission_mode: string;
   tools_enabled: boolean;
+  max_turns?: number;
 }
 
 export const settingsApi = {

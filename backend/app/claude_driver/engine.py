@@ -40,7 +40,9 @@ class ClaudeEngine:
         model: str | None = None,
         permission_mode: str = "acceptEdits",
         append_system_prompt: str | None = None,
+        effort: str | None = None,
         max_turns: int | None = None,
+        tools_enabled: bool = True,
         mcp_servers: list[dict[str, Any]] | None = None,
         chrome_enabled: bool = False,
         resume: bool = False,
@@ -50,7 +52,9 @@ class ClaudeEngine:
         self.model = model
         self.permission_mode = permission_mode
         self.append_system_prompt = append_system_prompt
+        self.effort = effort
         self.max_turns = max_turns
+        self.tools_enabled = tools_enabled
         self.mcp_servers = mcp_servers or []
         self.chrome_enabled = chrome_enabled
         self.resume = resume
@@ -89,7 +93,9 @@ class ClaudeEngine:
                 model=self.model,
                 permission_mode=self.permission_mode,
                 append_system_prompt=self.append_system_prompt,
+                effort=self.effort,
                 max_turns=self.max_turns,
+                tools_enabled=self.tools_enabled,
                 mcp_servers=self.mcp_servers,
                 chrome_enabled=self.chrome_enabled,
             )
@@ -143,7 +149,7 @@ class ClaudeEngine:
             if question.options:
                 answer["selected_options"] = [opt["value"] for opt in question.options]
             answers.append(answer)
-        await self.send_tool_result(tool_use_id, "\n".join(str(a) for a in answers))
+        await self.send_tool_result(tool_use_id, json.dumps(answers))
 
     async def stop(self) -> None:
         """Stop the CLI process gracefully."""

@@ -62,6 +62,9 @@ class ClaudeSessionManager:
         language: str = "zh",
         model: str | None = None,
         permission_mode: str = "acceptEdits",
+        effort: str | None = None,
+        max_turns: int | None = None,
+        tools_enabled: bool = True,
         mcp_servers: list[dict[str, Any]] | None = None,
         initial_message: str | None = None,
         resume: bool = False,
@@ -77,6 +80,9 @@ class ClaudeSessionManager:
             model=model,
             permission_mode=permission_mode,
             append_system_prompt=system_prompt,
+            effort=effort,
+            max_turns=max_turns,
+            tools_enabled=tools_enabled,
             mcp_servers=mcp_servers or [],
             resume=resume,
         )
@@ -185,6 +191,7 @@ class ClaudeSessionManager:
         if isinstance(event, PermissionRequestEvent):
             return {
                 "type": "permission_request",
+                "tool_use_id": event.tool_use_id,
                 "tool": event.tool,
                 "operation": event.operation,
                 "reason": event.reason,

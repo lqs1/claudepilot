@@ -9,6 +9,7 @@ interface SessionSettingsData {
   effort: string;
   permission_mode: string;
   tools_enabled: boolean;
+  max_turns: number;
 }
 
 const DEFAULT_SETTINGS: SessionSettingsData = {
@@ -16,6 +17,7 @@ const DEFAULT_SETTINGS: SessionSettingsData = {
   effort: "normal",
   permission_mode: "acceptEdits",
   tools_enabled: true,
+  max_turns: 0,
 };
 
 const MODEL_OPTIONS = [
@@ -107,6 +109,37 @@ function CloseIcon() {
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium">{label}</label>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => {
+          const parsed = parseInt(e.target.value, 10);
+          onChange(Number.isNaN(parsed) ? 0 : parsed);
+        }}
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      />
+    </div>
   );
 }
 
@@ -212,6 +245,12 @@ export function SessionSettings({ sessionId, onClose }: SessionSettingsProps) {
               value={settings.permission_mode}
               options={PERMISSION_OPTIONS}
               onChange={(v) => updateField("permission_mode", v)}
+            />
+            <NumberField
+              label={t("settings.maxTurns")}
+              value={settings.max_turns}
+              min={0}
+              onChange={(v) => updateField("max_turns", v)}
             />
             <ToggleField
               label={t("settings.toolsEnabled")}

@@ -21,7 +21,9 @@ class ClaudeCommandBuilder:
         model: str | None = None,
         permission_mode: str = "acceptEdits",
         append_system_prompt: str | None = None,
+        effort: str | None = None,
         max_turns: int | None = None,
+        tools_enabled: bool = True,
         mcp_servers: list[dict[str, Any]] | None = None,
         chrome_enabled: bool = False,
     ) -> list[str]:
@@ -33,6 +35,9 @@ class ClaudeCommandBuilder:
 
         args.extend(["--permission-mode", permission_mode])
 
+        if effort:
+            args.extend(["--effort", effort])
+
         if resume:
             args.extend(["--resume", session_id])
         else:
@@ -41,8 +46,15 @@ class ClaudeCommandBuilder:
         if append_system_prompt:
             args.extend(["--append-system-prompt", append_system_prompt])
 
-        if max_turns:
+        if max_turns is not None:
             args.extend(["--max-turns", str(max_turns)])
+
+        if tools_enabled:
+            # When tools are enabled we do not restrict the default tool set.
+            pass
+        else:
+            # Disabling tools is expressed as an empty allowed tool list.
+            args.extend(["--allowedTools", ""])
 
         args.extend(
             [

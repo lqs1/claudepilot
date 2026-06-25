@@ -98,6 +98,7 @@ class PermissionRequestEvent(ClaudeEvent):
     tool: str
     operation: str
     reason: str
+    tool_use_id: str = ""
     allow_once: bool = False
     allow_always: bool = False
     deny: bool = False
@@ -220,6 +221,7 @@ class StreamEventParser:
             tool=user_input.get("tool", ""),
             operation=user_input.get("operation", ""),
             reason=user_input.get("reason", ""),
+            tool_use_id=user_input.get("tool_use_id", ""),
             allow_once=user_input.get("allow_once", False),
             allow_always=user_input.get("allow_always", False),
             deny=user_input.get("deny", False),

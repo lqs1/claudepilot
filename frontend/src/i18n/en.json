@@ -32,6 +32,7 @@
     "model": "Model",
     "effort": "Effort",
     "permissionMode": "Permission Mode",
+    "maxTurns": "Max Turns",
     "toolsEnabled": "Enable Tools",
     "save": "Save",
     "cancel": "Cancel",

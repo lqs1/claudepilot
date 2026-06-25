@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import { NuminaInput } from "@/components/ui/numina-input";
 import { ChatPage } from "@/pages/ChatPage";
 import { FileBrowserPage } from "@/pages/FileBrowserPage";
 import { QuickOpenDialog } from "@/components/editor/QuickOpenDialog";
@@ -11,6 +12,32 @@ import { projectApi, sessionApi, shellApi } from "@/api";
 import { useAppStore } from "@/stores/appStore";
 
 type TabKey = "chat" | "files" | "terminal";
+
+function SidebarNavItem({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative w-full rounded-xl px-3 py-2 text-left text-sm transition-all duration-200 ${
+        active
+          ? "bg-sidebar-active text-sidebar-fg tech-glow"
+          : "text-sidebar-fg hover:bg-sidebar-hover"
+      }`}
+    >
+      {active && (
+        <span className="absolute left-0 top-1/2 h-[60%] w-[3px] -translate-y-1/2 rounded-r bg-gradient-to-b from-transparent via-primary to-transparent" />
+      )}
+      {children}
+    </button>
+  );
+}
 
 export function HomePage() {
   const { t, i18n } = useTranslation();
@@ -39,12 +66,14 @@ export function HomePage() {
 
   useEffect(() => {
     loadProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (selectedProjectId) {
       loadSessions(selectedProjectId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProjectId]);
 
   const loadProjects = async () => {
@@ -149,77 +178,76 @@ export function HomePage() {
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="flex h-screen bg-background text-foreground tech-bg-particles">
       {/* Sidebar */}
-      <div className="w-64 border-r border-border bg-card flex flex-col">
-        <div className="p-4 border-b border-border">
-          <h1 className="text-lg font-bold">{t("appName")}</h1>
+      <div className="w-64 flex flex-col bg-sidebar-bg text-sidebar-fg shadow-sidebar-raised">
+        <div className="p-4">
+          <h1 className="text-lg font-bold tracking-tight text-sidebar-fg">
+            {t("appName")}
+          </h1>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
           {/* Projects */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-muted">
                 {t("project.title")}
               </span>
             </div>
             <div className="space-y-1">
               {projects.map((project) => (
-                <button
+                <SidebarNavItem
                   key={project.id}
+                  active={selectedProjectId === project.id}
                   onClick={() => selectProject(project.id)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                    selectedProjectId === project.id
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
                 >
                   {project.name}
-                </button>
+                </SidebarNavItem>
               ))}
             </div>
 
-            <div className="space-y-2 pt-2">
-              <input
+            <div className="space-y-2 rounded-xl p-3">
+              <NuminaInput
                 type="text"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 placeholder={t("project.name")}
-                className="w-full px-2 py-1 text-xs rounded border border-input bg-background"
+                className="text-xs"
               />
-              <input
+              <NuminaInput
                 type="text"
                 value={newProjectPath}
                 onChange={(e) => setNewProjectPath(e.target.value)}
                 placeholder={t("project.path")}
-                className="w-full px-2 py-1 text-xs rounded border border-input bg-background"
+                className="text-xs"
               />
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full"
+                className="w-full rounded-xl border-sidebar-hover bg-sidebar-hover text-sidebar-fg hover:bg-sidebar-active hover:text-sidebar-fg"
                 onClick={handleCreateProject}
               >
-                <Plus className="h-3 w-3 mr-1" /> {t("project.create")}
+                <Plus className="mr-1 h-3 w-3" /> {t("project.create")}
               </Button>
             </div>
 
-            <div className="space-y-1 pt-3 border-t border-border">
-              <span className="text-xs font-medium text-muted-foreground">
+            <div className="space-y-2 rounded-xl p-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-muted">
                 {t("project.openLocal")}
               </span>
-              <div className="flex gap-1">
-                <input
+              <div className="flex gap-2">
+                <NuminaInput
                   type="text"
                   value={openPath}
                   onChange={(e) => setOpenPath(e.target.value)}
                   placeholder="/path/to/your/project"
-                  className="flex-1 px-2 py-1 text-xs rounded border border-input bg-background"
+                  className="flex-1 text-xs"
                 />
                 <Button
                   size="sm"
                   variant="outline"
+                  className="rounded-xl border-sidebar-hover bg-sidebar-hover text-sidebar-fg hover:bg-sidebar-active hover:text-sidebar-fg"
                   onClick={() => setIsQuickOpenOpen(true)}
                 >
                   {t("project.browse")}
@@ -228,7 +256,7 @@ export function HomePage() {
               <Button
                 size="sm"
                 variant="secondary"
-                className="w-full"
+                className="w-full rounded-xl"
                 onClick={handleOpenProject}
               >
                 {t("project.open")}
@@ -244,41 +272,39 @@ export function HomePage() {
 
           {/* Sessions */}
           {selectedProjectId && (
-            <div className="space-y-2 pt-4 border-t border-border">
-              <span className="text-sm font-medium text-muted-foreground">
-                {t("session.title")}
-              </span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-muted">
+                  {t("session.title")}
+                </span>
+              </div>
               <div className="space-y-1">
                 {sessions.map((session) => (
-                  <button
+                  <SidebarNavItem
                     key={session.id}
+                    active={selectedSessionId === session.id}
                     onClick={() => selectSession(session.id)}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                      selectedSessionId === session.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
                   >
                     {session.title}
-                  </button>
+                  </SidebarNavItem>
                 ))}
               </div>
-              <div className="space-y-1 pt-2">
-                <input
+              <div className="space-y-2 rounded-xl p-3">
+                <NuminaInput
                   type="text"
                   value={newSessionTitle}
                   onChange={(e) => setNewSessionTitle(e.target.value)}
                   placeholder={t("session.newSession")}
-                  className="w-full px-2 py-1 text-xs rounded border border-input bg-background"
+                  className="text-xs"
                 />
                 <Button
                   size="sm"
                   variant="outline"
-                  className="w-full"
+                  className="w-full rounded-xl border-sidebar-hover bg-sidebar-hover text-sidebar-fg hover:bg-sidebar-active hover:text-sidebar-fg"
                   onClick={handleCreateSession}
                   disabled={isCreatingSession}
                 >
-                  <Plus className="h-3 w-3 mr-1" /> {t("session.newSession")}
+                  <Plus className="mr-1 h-3 w-3" /> {t("session.newSession")}
                 </Button>
               </div>
             </div>
@@ -286,11 +312,11 @@ export function HomePage() {
         </div>
 
         {/* Language toggle */}
-        <div className="p-4 border-t border-border">
+        <div className="p-3">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full"
+            className="w-full rounded-xl text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg"
             onClick={toggleLanguage}
           >
             {language === "zh" ? t("settings.chinese") : t("settings.english")}
@@ -299,33 +325,54 @@ export function HomePage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         {selectedProjectId ? (
           <>
-            <div className="flex items-center border-b border-border bg-card">
+            <div
+              className="flex items-center border-b border-transparent p-2"
+              style={{ boxShadow: "var(--neu-raised-sm)" }}
+            >
               {(["chat", "files", "terminal"] as TabKey[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-sm font-medium capitalize ${
+                  className={`rounded-xl px-4 py-2 text-sm font-medium capitalize transition-all ${
                     activeTab === tab
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-neu-sm tech-btn-shimmer"
+                      : "text-muted-foreground hover:bg-card hover:text-foreground"
                   }`}
                 >
                   {tab}
                 </button>
               ))}
             </div>
-            <div className="flex-1 overflow-hidden">
-              {activeTab === "chat" && <ChatPage />}
+            <div className="flex-1 overflow-hidden p-4">
+              {activeTab === "chat" && (
+                <div
+                  className="h-full overflow-hidden rounded-xl bg-card"
+                  style={{ boxShadow: "var(--neu-raised)" }}
+                >
+                  <ChatPage />
+                </div>
+              )}
               {activeTab === "files" && (
-                <FileBrowserPage projectId={selectedProjectId} />
+                <div
+                  className="h-full overflow-hidden rounded-xl bg-card"
+                  style={{ boxShadow: "var(--neu-raised)" }}
+                >
+                  <FileBrowserPage projectId={selectedProjectId} />
+                </div>
               )}
               {activeTab === "terminal" && (
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
-                    <span className="text-sm font-medium flex items-center gap-2">
+                <div
+                  className="flex h-full flex-col overflow-hidden rounded-xl bg-card"
+                  style={{ boxShadow: "var(--neu-raised)" }}
+                >
+                  <div
+                    className="flex items-center justify-between px-4 py-3"
+                    style={{ boxShadow: "var(--neu-raised-sm)" }}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium">
                       <Terminal className="h-4 w-4" />
                       {shellId ? `Shell: ${shellId}` : "No shell running"}
                     </span>
@@ -349,11 +396,11 @@ export function HomePage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden p-2">
                     {shellId ? (
                       <XTermTerminal shellId={shellId} />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                         Click "Start Shell" to open a terminal
                       </div>
                     )}
@@ -363,7 +410,7 @@ export function HomePage() {
             </div>
           </>
         ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+          <div className="flex h-full items-center justify-center text-muted-foreground">
             Select or create a project to start
           </div>
         )}

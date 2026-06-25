@@ -35,7 +35,7 @@ async def get_settings() -> dict[str, Any]:
 async def update_settings(payload: dict[str, Any]) -> dict[str, Any]:
     """Update the global default settings."""
     global _default_settings
-    allowed_keys = {"model", "effort", "permission_mode", "tools_enabled"}
+    allowed_keys = {"model", "effort", "permission_mode", "tools_enabled", "max_turns"}
     for key, value in payload.items():
         if key not in allowed_keys:
             raise HTTPException(status_code=422, detail=f"Unknown setting: {key}")
@@ -67,7 +67,7 @@ async def update_session_settings(
     session = await session_service.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    allowed_keys = {"model", "effort", "permission_mode", "tools_enabled"}
+    allowed_keys = {"model", "effort", "permission_mode", "tools_enabled", "max_turns"}
     for key, value in payload.items():
         if key not in allowed_keys:
             raise HTTPException(status_code=422, detail=f"Unknown setting: {key}")
