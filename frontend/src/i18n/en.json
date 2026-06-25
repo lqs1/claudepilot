@@ -1,0 +1,41 @@
+{
+  "appName": "ClaudePilot",
+  "chat": {
+    "inputPlaceholder": "Type a message...",
+    "newSession": "New Session",
+    "send": "Send",
+    "thinking": "Claude is thinking...",
+    "startSession": "Start Session",
+    "stopSession": "Stop Session"
+  },
+  "project": {
+    "title": "Projects",
+    "newProject": "New Project",
+    "name": "Name",
+    "path": "Path",
+    "create": "Create",
+    "openLocal": "Open Local Path",
+    "open": "Open",
+    "browse": "Browse"
+  },
+  "session": {
+    "title": "Sessions",
+    "newSession": "New Session",
+    "language": "Language"
+  },
+  "settings": {
+    "title": "Settings",
+    "sessionTitle": "Session Settings",
+    "language": "UI Language",
+    "chinese": "中文",
+    "english": "English",
+    "model": "Model",
+    "effort": "Effort",
+    "permissionMode": "Permission Mode",
+    "toolsEnabled": "Enable Tools",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "loading": "Loading..."
+  }
+}

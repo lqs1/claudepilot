@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: mypy-backend
+        name: mypy backend
+        entry: bash -c 'cd backend && conda run -n claudepilot mypy --strict app/'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: npx prettier --write
+        language: node
+        files: \.(js|jsx|ts|tsx|css|json|md|yaml|yml)$
+        additional_dependencies: [prettier@3.3.3]
+
+      - id: frontend-typecheck
+        name: frontend typecheck
+        entry: bash -c 'cd frontend && npm run build'
+        language: system
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false

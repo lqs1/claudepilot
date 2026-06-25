@@ -1,0 +1,41 @@
+{
+  "appName": "ClaudePilot",
+  "chat": {
+    "inputPlaceholder": "输入消息...",
+    "newSession": "新会话",
+    "send": "发送",
+    "thinking": "Claude 思考中...",
+    "startSession": "启动会话",
+    "stopSession": "停止会话"
+  },
+  "project": {
+    "title": "项目",
+    "newProject": "新建项目",
+    "name": "名称",
+    "path": "路径",
+    "create": "创建",
+    "openLocal": "打开本地路径",
+    "open": "打开",
+    "browse": "浏览"
+  },
+  "session": {
+    "title": "会话",
+    "newSession": "新会话",
+    "language": "语言"
+  },
+  "settings": {
+    "title": "设置",
+    "sessionTitle": "会话设置",
+    "language": "界面语言",
+    "chinese": "中文",
+    "english": "English",
+    "model": "模型",
+    "effort": "推理强度",
+    "permissionMode": "权限模式",
+    "toolsEnabled": "启用工具",
+    "save": "保存",
+    "cancel": "取消",
+    "saving": "保存中...",
+    "loading": "加载中..."
+  }
+}
