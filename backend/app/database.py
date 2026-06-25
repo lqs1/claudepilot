@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -22,12 +23,22 @@ class Base(DeclarativeBase):
 
 
 async def init_db() -> None:
-    """Create database tables."""
+    """Create database tables if they do not already exist."""
     # Import models so that Base.metadata knows about all tables.
     from app import models  # noqa: F401
 
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+
+        def _create_tables(sync_conn: Any) -> None:
+            from sqlalchemy import inspect
+
+            inspector = inspect(sync_conn)
+            existing = set(inspector.get_table_names())
+            target = set(Base.metadata.tables.keys())
+            if not target.issubset(existing):
+                Base.metadata.create_all(sync_conn)
+
+        await conn.run_sync(_create_tables)
 
 
 async def close_db() -> None:
