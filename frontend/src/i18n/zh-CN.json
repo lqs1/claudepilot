@@ -34,6 +34,7 @@
     "permissionMode": "权限模式",
     "maxTurns": "最大轮次",
     "toolsEnabled": "启用工具",
+    "unlimited": "无限制",
     "save": "保存",
     "cancel": "取消",
     "saving": "保存中...",

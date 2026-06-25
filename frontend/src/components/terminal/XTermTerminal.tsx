@@ -5,14 +5,16 @@ import "xterm/css/xterm.css";
 
 interface XTermTerminalProps {
   shellId: string;
+  hidden?: boolean;
 }
 
-export function XTermTerminal({ shellId }: XTermTerminalProps) {
+export function XTermTerminal({ shellId, hidden = false }: XTermTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const onDataRef = useRef<((data: string) => void) | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -43,7 +45,6 @@ export function XTermTerminal({ shellId }: XTermTerminalProps) {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      // Send initial resize
       const dims = fitAddon.proposeDimensions();
       if (dims) {
         ws.send(
@@ -65,7 +66,6 @@ export function XTermTerminal({ shellId }: XTermTerminalProps) {
       term.writeln("\r\n\x1b[31m[Connection error]\x1b[0m");
     };
 
-    // Handle user input
     const onData = (data: string) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "input", data }));
@@ -74,7 +74,6 @@ export function XTermTerminal({ shellId }: XTermTerminalProps) {
     onDataRef.current = onData;
     term.onData(onData);
 
-    // Handle resize
     const resizeObserver = new ResizeObserver(() => {
       fitAddon.fit();
       const dims = fitAddon.proposeDimensions();
@@ -85,6 +84,7 @@ export function XTermTerminal({ shellId }: XTermTerminalProps) {
       }
     });
     resizeObserver.observe(container);
+    resizeObserverRef.current = resizeObserver;
 
     return () => {
       resizeObserver.disconnect();
@@ -94,12 +94,34 @@ export function XTermTerminal({ shellId }: XTermTerminalProps) {
       fitAddonRef.current = null;
       wsRef.current = null;
       onDataRef.current = null;
+      resizeObserverRef.current = null;
     };
-  }, [shellId]);
+  }, [shellId]); // Only re-init when shellId changes, not on tab switch
+
+  // Refit when tab becomes visible again
+  useEffect(() => {
+    if (hidden) return;
+    const fitAddon = fitAddonRef.current;
+    const ws = wsRef.current;
+    if (!fitAddon) return;
+
+    const timer = setTimeout(() => {
+      fitAddon.fit();
+      const dims = fitAddon.proposeDimensions();
+      if (dims && ws?.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({ type: "resize", cols: dims.cols, rows: dims.rows }),
+        );
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [hidden]);
 
   return (
     <div
       ref={containerRef}
+      className={hidden ? "hidden" : "block"}
       style={{
         width: "100%",
         height: "100%",

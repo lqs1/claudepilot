@@ -3,6 +3,7 @@ import Editor from "@monaco-editor/react";
 
 import { Button } from "@/components/ui/button";
 import { filesystemApi } from "@/api";
+import { useAppStore } from "@/stores/appStore";
 
 interface MonacoFileEditorProps {
   projectId: string;
@@ -15,6 +16,16 @@ export function MonacoFileEditor({ projectId, path }: MonacoFileEditorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const theme = useAppStore((state) => state.theme);
+
+  const resolvedTheme =
+    theme === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "vs-dark"
+        : "vs"
+      : theme === "dark"
+        ? "vs-dark"
+        : "vs";
 
   useEffect(() => {
     if (!path) {
@@ -63,7 +74,7 @@ export function MonacoFileEditor({ projectId, path }: MonacoFileEditorProps) {
 
   if (!path) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
         Select a file to edit
       </div>
     );
@@ -71,32 +82,35 @@ export function MonacoFileEditor({ projectId, path }: MonacoFileEditorProps) {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <span className="text-sm font-medium truncate">{path}</span>
+    <div className="flex h-full flex-1 flex-col">
+      <div
+        className="flex items-center justify-between px-4 py-2"
+        style={{ boxShadow: "var(--neu-raised-sm)" }}
+      >
+        <span className="truncate text-sm font-medium text-foreground">
+          {path}
+        </span>
         <Button size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
           {isSaving ? "Saving..." : "Save"}
         </Button>
       </div>
       {error && (
-        <div className="text-sm text-destructive px-4 py-2 border-b border-border">
-          {error}
-        </div>
+        <div className="px-4 py-2 text-sm text-destructive">{error}</div>
       )}
-      <div className="flex-1 min-h-0">
+      <div className="min-h-0 flex-1">
         <Editor
           height="100%"
           language={detectLanguage(path)}
           value={content}
           onChange={(value: string | undefined) => setContent(value || "")}
-          theme="vs-dark"
+          theme={resolvedTheme}
           options={{
             minimap: { enabled: false },
             fontSize: 14,

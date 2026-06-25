@@ -9,7 +9,7 @@ interface SessionSettingsData {
   effort: string;
   permission_mode: string;
   tools_enabled: boolean;
-  max_turns: number;
+  max_turns: number | undefined;
 }
 
 const DEFAULT_SETTINGS: SessionSettingsData = {
@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: SessionSettingsData = {
   effort: "normal",
   permission_mode: "acceptEdits",
   tools_enabled: true,
-  max_turns: 0,
+  max_turns: undefined,
 };
 
 const MODEL_OPTIONS = [
@@ -117,13 +117,15 @@ function NumberField({
   value,
   min,
   max,
+  placeholder,
   onChange,
 }: {
   label: string;
-  value: number;
+  value: number | undefined;
   min?: number;
   max?: number;
-  onChange: (value: number) => void;
+  placeholder?: string;
+  onChange: (value: number | undefined) => void;
 }) {
   return (
     <div>
@@ -132,10 +134,16 @@ function NumberField({
         type="number"
         min={min}
         max={max}
-        value={value}
+        placeholder={placeholder}
+        value={value ?? ""}
         onChange={(e) => {
-          const parsed = parseInt(e.target.value, 10);
-          onChange(Number.isNaN(parsed) ? 0 : parsed);
+          const raw = e.target.value;
+          if (raw === "") {
+            onChange(undefined);
+            return;
+          }
+          const parsed = parseInt(raw, 10);
+          onChange(Number.isNaN(parsed) ? undefined : parsed);
         }}
         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
       />
@@ -249,7 +257,8 @@ export function SessionSettings({ sessionId, onClose }: SessionSettingsProps) {
             <NumberField
               label={t("settings.maxTurns")}
               value={settings.max_turns}
-              min={0}
+              min={1}
+              placeholder={t("settings.unlimited") || "Unlimited"}
               onChange={(v) => updateField("max_turns", v)}
             />
             <ToggleField

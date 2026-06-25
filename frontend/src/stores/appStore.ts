@@ -2,6 +2,8 @@ import { create } from "zustand";
 
 import type { Message, Project, Session } from "@/api";
 
+export type Theme = "light" | "dark" | "system";
+
 interface AppState {
   projects: Project[];
   selectedProjectId: string | null;
@@ -9,6 +11,8 @@ interface AppState {
   selectedSessionId: string | null;
   messages: Record<string, Message[]>;
   language: "zh" | "en";
+  theme: Theme;
+  shellId: string | null;
   setProjects: (projects: Project[]) => void;
   selectProject: (projectId: string | null) => void;
   setSessions: (sessions: Session[]) => void;
@@ -21,7 +25,19 @@ interface AppState {
   ) => void;
   setMessages: (sessionId: string, messages: Message[]) => void;
   setLanguage: (language: "zh" | "en") => void;
+  setTheme: (theme: Theme) => void;
+  setShellId: (shellId: string | null) => void;
 }
+
+function applyTheme(theme: Theme) {
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const resolved =
+    theme === "system" ? (prefersDark ? "dark" : "light") : theme;
+  document.documentElement.dataset.theme = resolved;
+}
+
+const storedTheme = (localStorage.getItem("theme") as Theme | null) || "system";
+applyTheme(storedTheme);
 
 export const useAppStore = create<AppState>((set) => ({
   projects: [],
@@ -30,6 +46,8 @@ export const useAppStore = create<AppState>((set) => ({
   selectedSessionId: null,
   messages: {},
   language: "zh",
+  theme: storedTheme,
+  shellId: null,
 
   setProjects: (projects) => set({ projects }),
   selectProject: (projectId) =>
@@ -63,4 +81,10 @@ export const useAppStore = create<AppState>((set) => ({
       messages: { ...state.messages, [sessionId]: messages },
     })),
   setLanguage: (language) => set({ language }),
+  setTheme: (theme) => {
+    localStorage.setItem("theme", theme);
+    applyTheme(theme);
+    set({ theme });
+  },
+  setShellId: (shellId) => set({ shellId }),
 }));

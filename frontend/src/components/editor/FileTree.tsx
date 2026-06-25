@@ -132,31 +132,31 @@ export function FileTree({ projectId, onSelect, selectedPath }: FileTreeProps) {
       <div key={node.entry.path}>
         <button
           onClick={() => handleSelect(node)}
-          className={`w-full flex items-center gap-1 px-2 py-1 text-sm text-left hover:bg-muted ${
-            isSelected ? "bg-muted" : ""
+          className={`flex w-full items-center gap-1 rounded-lg px-2 py-1 text-left text-sm text-foreground transition-colors ${
+            isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
           }`}
           style={{ paddingLeft }}
         >
           {node.entry.type === "directory" && (
             <ChevronRight
-              className={`h-3 w-3 transition-transform ${node.isExpanded ? "rotate-90" : ""}`}
+              className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${node.isExpanded ? "rotate-90" : ""}`}
             />
           )}
           {node.entry.type === "directory" ? (
             node.isExpanded ? (
-              <FolderOpen className="h-4 w-4 text-yellow-500" />
+              <FolderOpen className="h-4 w-4 shrink-0 text-yellow-500" />
             ) : (
-              <Folder className="h-4 w-4 text-yellow-500" />
+              <Folder className="h-4 w-4 shrink-0 text-yellow-500" />
             )
           ) : (
-            <File className="h-4 w-4 text-blue-400" />
+            <File className="h-4 w-4 shrink-0 text-primary" />
           )}
           <span className="truncate">{node.entry.name}</span>
         </button>
         {node.isExpanded && node.children && (
           <div>
             {node.isLoading ? (
-              <div className="text-xs text-muted-foreground px-4 py-1">
+              <div className="px-4 py-1 text-xs text-muted-foreground">
                 Loading...
               </div>
             ) : (
@@ -169,7 +169,7 @@ export function FileTree({ projectId, onSelect, selectedPath }: FileTreeProps) {
   };
 
   if (error) {
-    return <div className="text-sm text-destructive p-2">{error}</div>;
+    return <div className="p-2 text-sm text-destructive">{error}</div>;
   }
 
   return <div className="py-1">{root.map((node) => renderNode(node))}</div>;

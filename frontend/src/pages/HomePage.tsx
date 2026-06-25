@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { NuminaInput } from "@/components/ui/numina-input";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ChatPage } from "@/pages/ChatPage";
 import { FileBrowserPage } from "@/pages/FileBrowserPage";
 import { QuickOpenDialog } from "@/components/editor/QuickOpenDialog";
@@ -48,11 +49,13 @@ export function HomePage() {
     selectedSessionId,
     messages,
     language,
+    shellId,
     setProjects,
     selectProject,
     setSessions,
     selectSession,
     setLanguage,
+    setShellId,
   } = useAppStore();
 
   const [newProjectName, setNewProjectName] = useState("");
@@ -62,7 +65,6 @@ export function HomePage() {
   const [newSessionTitle, setNewSessionTitle] = useState("");
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("chat");
-  const [shellId, setShellId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
@@ -312,7 +314,7 @@ export function HomePage() {
         </div>
 
         {/* Language toggle */}
-        <div className="p-3">
+        <div className="space-y-2 p-3">
           <Button
             variant="ghost"
             size="sm"
@@ -321,6 +323,7 @@ export function HomePage() {
           >
             {language === "zh" ? t("settings.chinese") : t("settings.english")}
           </Button>
+          <ThemeToggle />
         </div>
       </div>
 
@@ -347,66 +350,66 @@ export function HomePage() {
               ))}
             </div>
             <div className="flex-1 overflow-hidden p-4">
-              {activeTab === "chat" && (
+              <div
+                className="h-full overflow-hidden rounded-xl bg-card"
+                style={{ boxShadow: "var(--neu-raised)" }}
+                hidden={activeTab !== "chat"}
+              >
+                <ChatPage />
+              </div>
+              <div
+                className="h-full overflow-hidden rounded-xl bg-card"
+                style={{ boxShadow: "var(--neu-raised)" }}
+                hidden={activeTab !== "files"}
+              >
+                <FileBrowserPage projectId={selectedProjectId} />
+              </div>
+              <div
+                className="flex h-full flex-col overflow-hidden rounded-xl bg-card"
+                style={{ boxShadow: "var(--neu-raised)" }}
+                hidden={activeTab !== "terminal"}
+              >
                 <div
-                  className="h-full overflow-hidden rounded-xl bg-card"
-                  style={{ boxShadow: "var(--neu-raised)" }}
+                  className="flex items-center justify-between px-4 py-3"
+                  style={{ boxShadow: "var(--neu-raised-sm)" }}
                 >
-                  <ChatPage />
-                </div>
-              )}
-              {activeTab === "files" && (
-                <div
-                  className="h-full overflow-hidden rounded-xl bg-card"
-                  style={{ boxShadow: "var(--neu-raised)" }}
-                >
-                  <FileBrowserPage projectId={selectedProjectId} />
-                </div>
-              )}
-              {activeTab === "terminal" && (
-                <div
-                  className="flex h-full flex-col overflow-hidden rounded-xl bg-card"
-                  style={{ boxShadow: "var(--neu-raised)" }}
-                >
-                  <div
-                    className="flex items-center justify-between px-4 py-3"
-                    style={{ boxShadow: "var(--neu-raised-sm)" }}
-                  >
-                    <span className="flex items-center gap-2 text-sm font-medium">
-                      <Terminal className="h-4 w-4" />
-                      {shellId ? `Shell: ${shellId}` : "No shell running"}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {shellId ? (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleStopShell}
-                        >
-                          Stop
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={handleStartShell}
-                        >
-                          Start Shell
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-hidden p-2">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <Terminal className="h-4 w-4" />
+                    {shellId ? `Shell: ${shellId}` : "No shell running"}
+                  </span>
+                  <div className="flex items-center gap-2">
                     {shellId ? (
-                      <XTermTerminal shellId={shellId} />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleStopShell}
+                      >
+                        Stop
+                      </Button>
                     ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Click "Start Shell" to open a terminal
-                      </div>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleStartShell}
+                      >
+                        Start Shell
+                      </Button>
                     )}
                   </div>
                 </div>
-              )}
+                <div className="flex-1 overflow-hidden p-2">
+                  {shellId ? (
+                    <XTermTerminal
+                      shellId={shellId}
+                      hidden={activeTab !== "terminal"}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                      Click "Start Shell" to open a terminal
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </>
         ) : (

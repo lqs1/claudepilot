@@ -62,15 +62,14 @@ class TestCommandBuilderArgs:
         idx = args.index("--effort")
         assert args[idx + 1] == "high"
 
-    def test_max_turns_argument(self) -> None:
-        """Max turns is included when provided."""
+    def test_max_turns_zero_is_ignored(self) -> None:
+        """Zero max turns should not be passed to the CLI (means unlimited)."""
         args = ClaudeCommandBuilder.build_args(
             project_path=Path("/tmp"),
             session_id="s1",
-            max_turns=5,
+            max_turns=0,
         )
-        idx = args.index("--max-turns")
-        assert args[idx + 1] == "5"
+        assert "--max-turns" not in args
 
     def test_resume_argument(self) -> None:
         """Resume uses --resume with the session id."""

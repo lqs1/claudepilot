@@ -46,7 +46,8 @@ class ClaudeCommandBuilder:
         if append_system_prompt:
             args.extend(["--append-system-prompt", append_system_prompt])
 
-        if max_turns is not None:
+        # Only pass --max-turns for positive values. Zero or unset means unlimited.
+        if max_turns:
             args.extend(["--max-turns", str(max_turns)])
 
         if tools_enabled:

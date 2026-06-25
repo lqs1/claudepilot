@@ -23,6 +23,7 @@ export function QuickOpenDialog({
   useEffect(() => {
     if (!isOpen) return;
     loadHome();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const loadHome = async () => {
@@ -75,25 +76,27 @@ export function QuickOpenDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[600px] max-w-[90vw] bg-background border border-border rounded-lg shadow-lg flex flex-col max-h-[80vh]">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="font-medium">Select Local Directory</span>
+      <div className="flex max-h-[80vh] w-[600px] max-w-[90vw] flex-col rounded-xl bg-card shadow-neu">
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="font-medium text-foreground">
+            Select Local Directory
+          </span>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="px-4 py-2 border-b border-border bg-muted">
-          <div className="text-xs text-muted-foreground truncate">
+        <div className="bg-muted/30 px-4 py-2">
+          <div className="truncate text-xs text-muted-foreground">
             {currentPath}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
           {isLoading ? (
-            <div className="text-sm text-muted-foreground p-4">Loading...</div>
+            <div className="p-4 text-sm text-muted-foreground">Loading...</div>
           ) : error ? (
-            <div className="text-sm text-destructive p-4">{error}</div>
+            <div className="p-4 text-sm text-destructive">{error}</div>
           ) : (
             <div className="space-y-1">
               {currentPath !== "/" && (
@@ -103,9 +106,9 @@ export function QuickOpenDialog({
                       currentPath.split("/").slice(0, -1).join("/") || "/";
                     loadDirectory(parent);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-muted rounded"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground hover:bg-muted/50"
                 >
-                  <ChevronRight className="h-4 w-4 rotate-[-90deg]" />
+                  <ChevronRight className="h-4 w-4 rotate-[-90deg] text-muted-foreground" />
                   <span>..</span>
                 </button>
               )}
@@ -113,12 +116,12 @@ export function QuickOpenDialog({
                 <button
                   key={entry.path}
                   onClick={() => handleEntryClick(entry)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-muted rounded"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground hover:bg-muted/50"
                 >
                   {entry.type === "directory" ? (
                     <Folder className="h-4 w-4 text-yellow-500" />
                   ) : (
-                    <File className="h-4 w-4 text-blue-400" />
+                    <File className="h-4 w-4 text-primary" />
                   )}
                   <span>{entry.name}</span>
                 </button>
@@ -127,7 +130,7 @@ export function QuickOpenDialog({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
+        <div className="flex items-center justify-end gap-2 px-4 py-3">
           <Button variant="outline" size="sm" onClick={onClose}>
             Cancel
           </Button>
