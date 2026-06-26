@@ -51,6 +51,7 @@ export function HomePage() {
     messages,
     language,
     shellId,
+    loadingSessionId,
     setProjects,
     selectProject,
     setSessions,
@@ -357,8 +358,16 @@ export function HomePage() {
                 layout — they don't take up flow space and stack on the same
                 footprint. */}
             <div className="relative flex-1 overflow-hidden p-4">
+              {/* Rainbow halo: a layer slightly larger than the chat card so its
+                  glowing box-shadow can spread into the padding around the
+                  card and stay visible (the chat card itself is overflow:hidden
+                  and would clip a glow on its own root). */}
+              {activeTab === "chat" &&
+                loadingSessionId === selectedSessionId && (
+                  <div className="tech-rainbow-glow pointer-events-none absolute inset-2 z-0 rounded-xl" />
+                )}
               <div
-                className="absolute inset-4 overflow-hidden rounded-xl bg-card"
+                className="absolute inset-4 z-10 overflow-hidden rounded-xl bg-card"
                 style={{ boxShadow: "var(--neu-raised)" }}
                 hidden={activeTab !== "chat"}
               >
