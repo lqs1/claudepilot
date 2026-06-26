@@ -228,7 +228,13 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
 
   useEffect(() => {
     connect();
+    const pingId = setInterval(() => {
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 20000);
     return () => {
+      clearInterval(pingId);
       ws.current?.close();
     };
   }, [connect]);

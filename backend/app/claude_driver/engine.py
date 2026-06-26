@@ -66,6 +66,7 @@ class ClaudeEngine:
         self._lock = asyncio.Lock()
         self._read_task: asyncio.Task[None] | None = None
         self._stderr_task: asyncio.Task[None] | None = None
+        self._exit_callback: Callable[[], None] | None = None
 
     @property
     def status(self) -> str:
@@ -234,6 +235,18 @@ class ClaudeEngine:
             return_code = self._process.returncode
         self._status = "stopped" if return_code in (0, None) else "error"
         logger.info("Claude CLI exited with code %s", return_code)
+        self._notify_exit_callback()
+
+    def _notify_exit_callback(self) -> None:
+        if self._exit_callback is not None:
+            try:
+                self._exit_callback()
+            except Exception:  # noqa: BLE001
+                logger.exception("Engine exit callback failed")
+
+    def notify_exit(self, callback: Callable[[], None]) -> None:
+        """Register a callback invoked when the engine process exits."""
+        self._exit_callback = callback
 
     def _emit(self, event: ClaudeEvent) -> None:
         for handler in self._handlers:

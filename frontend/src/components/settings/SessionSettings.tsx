@@ -14,7 +14,7 @@ interface SessionSettingsData {
 
 const DEFAULT_SETTINGS: SessionSettingsData = {
   model: "claude-sonnet-4-20250514",
-  effort: "normal",
+  effort: "medium",
   permission_mode: "acceptEdits",
   tools_enabled: true,
   max_turns: undefined,
@@ -28,8 +28,10 @@ const MODEL_OPTIONS = [
 
 const EFFORT_OPTIONS = [
   { value: "low", label: "Low" },
-  { value: "normal", label: "Normal" },
+  { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
+  { value: "xhigh", label: "XHigh" },
+  { value: "max", label: "Max" },
 ];
 
 const PERMISSION_OPTIONS = [

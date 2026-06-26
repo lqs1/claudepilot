@@ -11,7 +11,7 @@ from app.models import GlobalSetting
 
 _DEFAULT_SETTINGS: dict[str, Any] = {
     "model": "claude-sonnet-4-20250514",
-    "effort": "normal",
+    "effort": "medium",
     "permission_mode": "acceptEdits",
     "tools_enabled": True,
 }

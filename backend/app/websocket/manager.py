@@ -35,6 +35,8 @@ class WebSocketManager:
                     message = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
+                if message.get("type") == "ping":
+                    continue
                 await self._handle_message(websocket, message)
         except WebSocketDisconnect:
             self._unsubscribe_all(websocket)

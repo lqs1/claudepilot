@@ -97,6 +97,11 @@ class ClaudeSessionManager:
             resume=resume,
         )
         engine.add_handler(lambda event: self._on_event(session_id, event))
+
+        def _remove_engine() -> None:
+            self._engines.pop(session_id, None)
+
+        engine.notify_exit(_remove_engine)
         self._engines[session_id] = engine
         await engine.start()
         self._broadcast_status(session_id, "idle")

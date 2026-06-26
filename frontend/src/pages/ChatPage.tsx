@@ -224,10 +224,20 @@ export function ChatPage() {
     subscribe(selectedSessionId);
     loadMessages(selectedSessionId);
 
+    // Poll messages as a fallback when the session is running and WebSocket
+    // events may be missed due to reconnects or idle disconnects.
+    let intervalId: number | null = null;
+    if (isRunning) {
+      intervalId = window.setInterval(() => {
+        loadMessages(selectedSessionId);
+      }, 3000);
+    }
+
     return () => {
       unsubscribe(selectedSessionId);
+      if (intervalId) clearInterval(intervalId);
     };
-  }, [selectedSessionId, subscribe, unsubscribe, loadMessages]);
+  }, [selectedSessionId, subscribe, unsubscribe, loadMessages, isRunning]);
 
   const handleStartSession = async () => {
     if (!selectedSessionId) return;
