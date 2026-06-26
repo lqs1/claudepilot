@@ -101,6 +101,7 @@ export function ChatPage() {
     addMessage,
     setMessages,
     removeTurn,
+    setLoadingSessionId,
     language,
   } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -197,6 +198,16 @@ export function ChatPage() {
   const sessionMessages = selectedSessionId
     ? messages[selectedSessionId] || []
     : [];
+
+  // Reflect "thinking/writing" into the global store so the sidebar can show a
+  // busy indicator on the active session; clear it when idle or on leave.
+  useEffect(() => {
+    setLoadingSessionId(
+      selectedSessionId && (status === "thinking" || status === "writing")
+        ? selectedSessionId
+        : null,
+    );
+  }, [selectedSessionId, status, setLoadingSessionId]);
 
   const loadMessages = useCallback(
     async (sessionId: string) => {

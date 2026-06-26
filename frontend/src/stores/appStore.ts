@@ -13,6 +13,8 @@ interface AppState {
   language: "zh" | "en";
   theme: Theme;
   shellId: string | null;
+  loadingSessionId: string | null;
+  setLoadingSessionId: (sessionId: string | null) => void;
   setProjects: (projects: Project[]) => void;
   selectProject: (projectId: string | null) => void;
   setSessions: (sessions: Session[]) => void;
@@ -49,6 +51,7 @@ export const useAppStore = create<AppState>((set) => ({
   language: "zh",
   theme: storedTheme,
   shellId: null,
+  loadingSessionId: null,
 
   setProjects: (projects) => set({ projects }),
   selectProject: (projectId) =>
@@ -101,4 +104,5 @@ export const useAppStore = create<AppState>((set) => ({
     set({ theme });
   },
   setShellId: (shellId) => set({ shellId }),
+  setLoadingSessionId: (sessionId) => set({ loadingSessionId: sessionId }),
 }));

@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Trash2,
+  User,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -24,10 +30,13 @@ export function MessageBubble({ message, onDeleteTurn }: MessageBubbleProps) {
   return (
     <div
       className={cn(
-        "group flex w-full",
+        "group flex w-full items-start gap-2",
         isUser ? "justify-end" : "justify-start",
       )}
     >
+      {/* Assistant/tool avatar on the left */}
+      {!isUser && <Avatar kind="assistant" />}
+
       <div className="relative">
         {canDelete && (
           <button
@@ -95,7 +104,26 @@ export function MessageBubble({ message, onDeleteTurn }: MessageBubbleProps) {
           </div>
         </div>
       </div>
+
+      {/* User avatar on the right */}
+      {isUser && <Avatar kind="user" />}
     </div>
+  );
+}
+
+/** Small circular avatar distinguishing speakers. */
+function Avatar({ kind }: { kind: "user" | "assistant" }) {
+  if (kind === "user") {
+    return (
+      <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <User className="h-4 w-4" />
+      </span>
+    );
+  }
+  return (
+    <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
+      <Sparkles className="h-4 w-4" />
+    </span>
   );
 }
 

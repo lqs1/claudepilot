@@ -17,10 +17,12 @@ type TabKey = "chat" | "files" | "terminal" | "changes";
 
 function SidebarNavItem({
   active,
+  loading,
   onClick,
   children,
 }: {
   active: boolean;
+  loading?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -33,11 +35,25 @@ function SidebarNavItem({
           : "text-sidebar-fg hover:bg-sidebar-hover"
       }`}
     >
-      {active && (
+      {active && !loading && (
         <span className="absolute left-0 top-1/2 h-[60%] w-[3px] -translate-y-1/2 rounded-r bg-gradient-to-b from-transparent via-primary to-transparent" />
       )}
-      {children}
+      {/* Animated rainbow left bar while the session is busy. */}
+      {loading && (
+        <span className="rainbow-flow rainbow-bar absolute left-0 top-0 h-full w-[3px] rounded-r" />
+      )}
+      <span className="relative z-10">{children}</span>
+      {loading && <RainbowProgress />}
     </button>
+  );
+}
+
+/** A thin flowing rainbow bar pinned along the bottom of a loading item. */
+function RainbowProgress() {
+  return (
+    <span className="pointer-events-none absolute bottom-0 left-0 h-[2px] w-full overflow-hidden rounded-b">
+      <span className="rainbow-flow block h-full w-full" />
+    </span>
   );
 }
 
@@ -51,6 +67,7 @@ export function HomePage() {
     messages,
     language,
     shellId,
+    loadingSessionId,
     setProjects,
     selectProject,
     setSessions,
@@ -286,6 +303,7 @@ export function HomePage() {
                   <SidebarNavItem
                     key={session.id}
                     active={selectedSessionId === session.id}
+                    loading={loadingSessionId === session.id}
                     onClick={() => selectSession(session.id)}
                   >
                     {session.title}
