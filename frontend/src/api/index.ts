@@ -100,7 +100,21 @@ export const messageApi = {
     api.delete<{ deleted: boolean }>(
       `/sessions/${sessionId}/turns/${turnUuid}`,
     ),
+  getChanges: (sessionId: string) =>
+    api.get<{ changes: ChangeEntry[] }>(`/sessions/${sessionId}/changes`),
 };
+
+export interface ChangeEntry {
+  file_path: string;
+  /** "edit" (Edit tool) or "create" (Write tool). */
+  kind: "edit" | "create";
+  /** Unified-diff text for display (empty for creates). */
+  diff: string;
+  old_text: string;
+  new_text: string;
+  turn_uuid: string;
+  order: number;
+}
 
 export interface FileEntry {
   name: string;

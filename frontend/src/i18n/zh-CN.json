@@ -10,6 +10,9 @@
     "stopBeforeDelete": "删除前请先停止会话",
     "confirmDeleteTurn": "删除这一轮对话及其回复？该操作会同时从 CLI 历史中移除。"
   },
+  "changes": {
+    "empty": "该会话还没有文件变更。"
+  },
   "project": {
     "title": "项目",
     "newProject": "新建项目",

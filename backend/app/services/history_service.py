@@ -13,6 +13,7 @@ This module is the single source of truth for that file format.
 
 from __future__ import annotations
 
+import difflib
 import json
 import logging
 import os
@@ -93,6 +94,42 @@ class Turn:
         return msgs
 
 
+@dataclass
+class ChangeEntry:
+    """A single file-changing tool call extracted from the history.
+
+    Ordered by when it happened in the conversation. The UI groups these by
+    ``file_path`` while keeping each edit's own before/after (a file can be
+    edited several times, each with its own diff).
+    """
+
+    file_path: str
+    """``"edit"`` (Edit tool) or ``"create"`` (Write tool)."""
+    kind: str
+    """Unified-diff text (from difflib) for display. Empty for creates with
+    no prior content to diff against."""
+    diff: str
+    """The 'before' text, where available (Edit only)."""
+    old_text: str
+    """The 'after' text."""
+    new_text: str
+    """Originating turn uuid, so changes can be linked back to the prompt."""
+    turn_uuid: str
+    """0-based order within the whole session."""
+    order: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "file_path": self.file_path,
+            "kind": self.kind,
+            "diff": self.diff,
+            "old_text": self.old_text,
+            "new_text": self.new_text,
+            "turn_uuid": self.turn_uuid,
+            "order": self.order,
+        }
+
+
 class HistoryService:
     """Read and rewind a single session's jsonl history."""
 
@@ -145,6 +182,26 @@ class HistoryService:
         for turn in self.list_turns():
             msgs.extend(turn.to_messages())
         return msgs
+
+    def list_changes(self) -> list[ChangeEntry]:
+        """Return the file-changing tool calls (Edit/Write) in order.
+
+        Extracted from each turn's tool_uses. Read/Bash/etc. are ignored. The
+        result is a time-ordered list (the UI groups by file); each entry
+        carries its own before/after diff so multiple edits to one file all
+        stay visible.
+        """
+        changes: list[ChangeEntry] = []
+        order = 0
+        for turn in self.list_turns():
+            for tool in turn.tool_uses:
+                name = tool.get("name", "")
+                inp = tool.get("input") or {}
+                entry = _tool_to_change(name, inp, turn.uuid, order)
+                if entry is not None:
+                    changes.append(entry)
+                    order += 1
+        return changes
 
     def delete_turn(self, turn_uuid: str) -> bool:
         """Remove the turn whose prompt has ``turn_uuid`` from the jsonl.
@@ -239,6 +296,58 @@ def _read_rows(path: Path) -> list[dict[str, Any]]:
             except json.JSONDecodeError:
                 logger.warning("Skipping unparseable line in %s", path)
     return rows
+
+
+def _tool_to_change(
+    name: str, input_: dict[str, Any], turn_uuid: str, order: int
+) -> ChangeEntry | None:
+    """Convert an Edit/Write tool_use input into a ChangeEntry, else None."""
+    file_path = str(input_.get("file_path") or "")
+    if not file_path:
+        return None
+
+    if name == "Write":
+        new_text = str(input_.get("content") or "")
+        return ChangeEntry(
+            file_path=file_path,
+            kind="create",
+            diff="",  # no prior content to diff against
+            old_text="",
+            new_text=new_text,
+            turn_uuid=turn_uuid,
+            order=order,
+        )
+
+    if name in ("Edit", "MultiEdit", "NotebookEdit"):
+        old_text = str(input_.get("old_string") or "")
+        new_text = str(input_.get("new_string") or "")
+        diff = _make_unified_diff(file_path, old_text, new_text)
+        return ChangeEntry(
+            file_path=file_path,
+            kind="edit",
+            diff=diff,
+            old_text=old_text,
+            new_text=new_text,
+            turn_uuid=turn_uuid,
+            order=order,
+        )
+
+    return None
+
+
+def _make_unified_diff(file_path: str, old_text: str, new_text: str) -> str:
+    """Build a minimal unified diff string for display."""
+    # Use the basename for the file labels so absolute paths don't mangle the
+    # header (which would otherwise read "a//private/...").
+    name = Path(file_path).name or file_path
+    diff = difflib.unified_diff(
+        old_text.splitlines(),
+        new_text.splitlines(),
+        fromfile=f"a/{name}",
+        tofile=f"b/{name}",
+        lineterm="",
+    )
+    return "\n".join(diff)
 
 
 def _clone_row(row: dict[str, Any]) -> dict[str, Any]:
@@ -343,4 +452,4 @@ def _atomic_write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
         raise
 
 
-__all__ = ["HistoryService", "Turn", "encode_project_path"]
+__all__ = ["HistoryService", "Turn", "ChangeEntry", "encode_project_path"]

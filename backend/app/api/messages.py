@@ -218,6 +218,20 @@ async def list_messages(
     return {"messages": messages}
 
 
+@router.get("/changes")
+async def list_changes(
+    session_id: str,
+    project_service: ProjectService = Depends(_get_project_service),
+    session_service: SessionService = Depends(_get_session_service),
+) -> dict[str, Any]:
+    """List file-changing tool calls (Edit/Write) for a session, in order."""
+    session, project = await _resolve_session(
+        session_id, session_service, project_service
+    )
+    changes = HistoryService(Path(project.path), session_id).list_changes()
+    return {"changes": [c.to_dict() for c in changes]}
+
+
 @router.delete("/turns/{turn_uuid}")
 async def delete_turn(
     session_id: str,

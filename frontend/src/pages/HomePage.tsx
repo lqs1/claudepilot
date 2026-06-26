@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { NuminaInput } from "@/components/ui/numina-input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ChatPage } from "@/pages/ChatPage";
+import { ChangesPage } from "@/pages/ChangesPage";
 import { FileBrowserPage } from "@/pages/FileBrowserPage";
 import { QuickOpenDialog } from "@/components/editor/QuickOpenDialog";
 import { XTermTerminal } from "@/components/terminal/XTermTerminal";
 import { projectApi, sessionApi, shellApi } from "@/api";
 import { useAppStore } from "@/stores/appStore";
 
-type TabKey = "chat" | "files" | "terminal";
+type TabKey = "chat" | "files" | "terminal" | "changes";
 
 function SidebarNavItem({
   active,
@@ -335,19 +336,21 @@ export function HomePage() {
               className="flex items-center border-b border-transparent p-2"
               style={{ boxShadow: "var(--neu-raised-sm)" }}
             >
-              {(["chat", "files", "terminal"] as TabKey[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`rounded-xl px-4 py-2 text-sm font-medium capitalize transition-all ${
-                    activeTab === tab
-                      ? "bg-primary text-primary-foreground shadow-neu-sm tech-btn-shimmer"
-                      : "text-muted-foreground hover:bg-card hover:text-foreground"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
+              {(["chat", "changes", "files", "terminal"] as TabKey[]).map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`rounded-xl px-4 py-2 text-sm font-medium capitalize transition-all ${
+                      activeTab === tab
+                        ? "bg-primary text-primary-foreground shadow-neu-sm tech-btn-shimmer"
+                        : "text-muted-foreground hover:bg-card hover:text-foreground"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ),
+              )}
             </div>
             <div className="flex-1 overflow-hidden p-4">
               <div
@@ -356,6 +359,13 @@ export function HomePage() {
                 hidden={activeTab !== "chat"}
               >
                 <ChatPage />
+              </div>
+              <div
+                className="h-full overflow-hidden rounded-xl bg-card"
+                style={{ boxShadow: "var(--neu-raised)" }}
+                hidden={activeTab !== "changes"}
+              >
+                <ChangesPage sessionId={selectedSessionId} />
               </div>
               <div
                 className="h-full overflow-hidden rounded-xl bg-card"

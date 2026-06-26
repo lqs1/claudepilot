@@ -10,6 +10,9 @@
     "stopBeforeDelete": "Stop the session before deleting",
     "confirmDeleteTurn": "Delete this turn and its reply? This also removes it from the CLI history."
   },
+  "changes": {
+    "empty": "No file changes in this session yet."
+  },
   "project": {
     "title": "Projects",
     "newProject": "New Project",
