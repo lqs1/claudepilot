@@ -29,12 +29,12 @@ function SidebarNavItem({
       onClick={onClick}
       className={`group relative w-full rounded-xl px-3 py-2 text-left text-sm transition-all duration-200 ${
         active
-          ? "bg-sidebar-active text-sidebar-fg tech-glow"
+          ? "nav-rainbow text-white shadow-lg"
           : "text-sidebar-fg hover:bg-sidebar-hover"
       }`}
     >
       {active && (
-        <span className="absolute left-0 top-1/2 h-[60%] w-[3px] -translate-y-1/2 rounded-r bg-gradient-to-b from-transparent via-primary to-transparent" />
+        <span className="absolute left-0 top-1/2 h-[60%] w-[3px] -translate-y-1/2 rounded-r bg-white/70" />
       )}
       <span className="relative z-10">{children}</span>
     </button>
@@ -182,7 +182,7 @@ export function HomePage() {
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground tech-bg-particles">
+    <div className="app-bg flex h-screen text-foreground tech-bg-particles">
       {/* Sidebar */}
       <div className="w-64 flex flex-col bg-sidebar-bg text-sidebar-fg shadow-sidebar-raised">
         <div className="p-4">

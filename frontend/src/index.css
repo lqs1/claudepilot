@@ -54,12 +54,34 @@
 }
 
 [data-theme="dark"] {
-  --background: #0f172a;
-  --card: #1e293b;
-  --foreground: #f1f5f9;
-  --muted-foreground: #94a3b8;
-  --neu-shadow-light: #334155;
-  --neu-shadow-dark: #020617;
+  --background: #0a0e1a;
+  --card: #131826;
+  --foreground: #e6ebf5;
+  --muted-foreground: #8b95ad;
+  --neu-shadow-light: #1f2740;
+  --neu-shadow-dark: #04060d;
+}
+
+.app-bg {
+  background-color: var(--background);
+}
+[data-theme="dark"] .app-bg {
+  background: radial-gradient(
+      1200px 800px at 15% -10%,
+      rgba(99, 102, 241, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 700px at 110% 10%,
+      rgba(139, 92, 246, 0.1),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 600px at 50% 120%,
+      rgba(236, 72, 153, 0.07),
+      transparent 60%
+    ),
+    #0a0e1a;
 }
 
 @keyframes tech-glow-pulse {
@@ -165,6 +187,31 @@
 
 .tech-rainbow-glow {
   animation: rainbow-halo 2.4s linear infinite;
+}
+
+/* Active sidebar nav item: a gently flowing rainbow gradient. Distinct from
+   the busy chat halo — softer, slower, designed as a "selected" look. */
+@keyframes nav-rainbow-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.nav-rainbow {
+  background: linear-gradient(
+    90deg,
+    #6366f1,
+    #8b5cf6,
+    #ec4899,
+    #f43f5e,
+    #f59e0b,
+    #6366f1
+  );
+  background-size: 200% 100%;
+  animation: nav-rainbow-shift 6s linear infinite;
 }
 
 .tech-shimmer-bg {
