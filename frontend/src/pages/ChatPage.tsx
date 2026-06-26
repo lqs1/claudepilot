@@ -101,7 +101,6 @@ export function ChatPage() {
     addMessage,
     setMessages,
     removeTurn,
-    setLoadingSessionId,
     language,
   } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -199,15 +198,12 @@ export function ChatPage() {
     ? messages[selectedSessionId] || []
     : [];
 
-  // Reflect "thinking/writing" into the global store so the sidebar can show a
-  // busy indicator on the active session; clear it when idle or on leave.
-  useEffect(() => {
-    setLoadingSessionId(
-      selectedSessionId && (status === "thinking" || status === "writing")
-        ? selectedSessionId
-        : null,
-    );
-  }, [selectedSessionId, status, setLoadingSessionId]);
+  // The rainbow halo tracks the live WS status: on while Claude is thinking/
+  // writing, off as soon as it returns to idle (or errors). This is more
+  // reliable than a separate isProcessing flag that could be flipped by a
+  // stray delayed result event from another turn.
+  const isBusy =
+    !!selectedSessionId && (status === "thinking" || status === "writing");
 
   const loadMessages = useCallback(
     async (sessionId: string) => {
@@ -356,7 +352,11 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div
+      className={`flex flex-col h-full min-h-0 overflow-hidden transition-shadow duration-300 ${
+        isBusy ? "tech-rainbow-glow" : ""
+      }`}
+    >
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border bg-card">
         <div className="flex items-center gap-3 text-sm font-medium">
           <span>

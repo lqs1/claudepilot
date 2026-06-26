@@ -24,6 +24,7 @@ export interface ClaudeEventHandler {
   onStatus?: (sessionId: string, data: Record<string, unknown>) => void;
   onPlan?: (sessionId: string, data: Record<string, unknown>) => void;
   onError?: (sessionId: string, data: Record<string, unknown>) => void;
+  onResult?: (sessionId: string, data: Record<string, unknown>) => void;
 }
 
 export function useWebSocket(handler?: ClaudeEventHandler) {
@@ -236,6 +237,7 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
         });
       }
       currentHandler?.onAssistant?.(sessionId, data);
+      currentHandler?.onResult?.(sessionId, data);
     } else if (eventType === "raw_output") {
       const stream = data.stream as string;
       const content = (data.content as string) || "";
