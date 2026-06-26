@@ -24,6 +24,7 @@ interface AppState {
     updates: Partial<Message>,
   ) => void;
   setMessages: (sessionId: string, messages: Message[]) => void;
+  removeTurn: (sessionId: string, turnUuid: string) => void;
   setLanguage: (language: "zh" | "en") => void;
   setTheme: (theme: Theme) => void;
   setShellId: (shellId: string | null) => void;
@@ -80,6 +81,19 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       messages: { ...state.messages, [sessionId]: messages },
     })),
+  removeTurn: (sessionId, turnUuid) =>
+    set((state) => {
+      const sessionMessages = state.messages[sessionId] || [];
+      const filtered = sessionMessages.filter(
+        // A turn shares one uuid across its user prompt and assistant reply.
+        // Messages without a uuid (live user input) are never removed here.
+        (m) => !m.uuid || m.uuid !== turnUuid,
+      );
+      if (filtered.length === sessionMessages.length) return state;
+      return {
+        messages: { ...state.messages, [sessionId]: filtered },
+      };
+    }),
   setLanguage: (language) => set({ language }),
   setTheme: (theme) => {
     localStorage.setItem("theme", theme);

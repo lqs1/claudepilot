@@ -7,9 +7,14 @@ import type { Message } from "@/api";
 interface MessageListProps {
   messages: Message[];
   isLoading?: boolean;
+  onDeleteTurn?: (turnUuid: string) => void;
 }
 
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export function MessageList({
+  messages,
+  isLoading,
+  onDeleteTurn,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -25,7 +30,11 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+        <MessageBubble
+          key={message.id}
+          message={message}
+          onDeleteTurn={onDeleteTurn}
+        />
       ))}
       {isLoading && (
         <div className="flex justify-start">

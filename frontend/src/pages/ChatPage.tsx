@@ -94,8 +94,15 @@ interface QuestionState {
 
 export function ChatPage() {
   const { t } = useTranslation();
-  const { selectedSessionId, messages, addMessage, setMessages, language } =
-    useAppStore();
+  const {
+    selectedSessionId,
+    sessions,
+    messages,
+    addMessage,
+    setMessages,
+    removeTurn,
+    language,
+  } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [permission, setPermission] = useState<PermissionState | null>(null);
@@ -203,41 +210,34 @@ export function ChatPage() {
     [setMessages],
   );
 
-  // Check session status on mount / when session changes
+  // Sync UI running state with the authoritative backend session status.
+  // We must NOT infer "running" from the presence of assistant messages:
+  // a session with history is not necessarily live, and that wrong guess
+  // blocks operations (like history delete) that require a stopped session.
   useEffect(() => {
     if (!selectedSessionId) {
       setIsRunning(false);
       return;
     }
-    // Check if session already has messages from a running session
-    const hasAssistantMessages = sessionMessages.some(
-      (m) => m.role === "assistant",
-    );
-    if (hasAssistantMessages) {
-      setIsRunning(true);
-    }
-  }, [selectedSessionId, sessionMessages]);
+    const session = sessions.find((s) => s.id === selectedSessionId);
+    setIsRunning(session?.status === "running");
+  }, [selectedSessionId, sessions]);
 
   useEffect(() => {
     if (!selectedSessionId) return;
 
     subscribe(selectedSessionId);
+    // Load history once per session. The WebSocket is the single source of
+    // truth for live updates; we deliberately do NOT poll on an interval,
+    // because the server persists messages asynchronously (fire-and-forget)
+    // and a DB read can return a stale list that would clobber a reply that
+    // just arrived over the WebSocket.
     loadMessages(selectedSessionId);
-
-    // Poll messages as a fallback when the session is running and WebSocket
-    // events may be missed due to reconnects or idle disconnects.
-    let intervalId: number | null = null;
-    if (isRunning) {
-      intervalId = window.setInterval(() => {
-        loadMessages(selectedSessionId);
-      }, 3000);
-    }
 
     return () => {
       unsubscribe(selectedSessionId);
-      if (intervalId) clearInterval(intervalId);
     };
-  }, [selectedSessionId, subscribe, unsubscribe, loadMessages, isRunning]);
+  }, [selectedSessionId, subscribe, unsubscribe, loadMessages]);
 
   const handleStartSession = async () => {
     if (!selectedSessionId) return;
@@ -248,6 +248,33 @@ export function ChatPage() {
     } catch (err) {
       console.error("Failed to start session", err);
       setError(err instanceof Error ? err.message : "Failed to start session");
+    }
+  };
+
+  const handleDeleteTurn = async (turnUuid: string) => {
+    if (!selectedSessionId) return;
+    const confirmed = window.confirm(
+      t("chat.confirmDeleteTurn") ||
+        "Delete this turn and its reply? This also removes it from the CLI history.",
+    );
+    if (!confirmed) return;
+    setError(null);
+    try {
+      await messageApi.deleteTurn(selectedSessionId, turnUuid);
+      removeTurn(selectedSessionId, turnUuid);
+    } catch (err) {
+      console.error("Failed to delete turn", err);
+      // The backend rejects deletion with 409 while the engine is running
+      // (it owns the jsonl file); surface that as a clear instruction.
+      const isRunning =
+        err instanceof Error && /409|Stop the session/.test(err.message);
+      setError(
+        isRunning
+          ? t("chat.stopBeforeDelete") || "Stop the session before deleting"
+          : err instanceof Error
+            ? err.message
+            : "Failed to delete turn",
+      );
     }
   };
 
@@ -360,8 +387,17 @@ export function ChatPage() {
         </div>
       )}
 
-      <MessageList messages={sessionMessages} isLoading={isLoading} />
-      <PlanModePanel plan={plan} onPlanChange={setPlan} />
+      <MessageList
+        messages={sessionMessages}
+        isLoading={isLoading}
+        onDeleteTurn={handleDeleteTurn}
+      />
+      {/* PlanModePanel sits between the message list and the input box.
+          Wrap it so it never grows to push the input box off-screen: it keeps
+          its intrinsic size and scrolls internally if the plan is long. */}
+      <div className="flex-shrink-0 max-h-[40vh] overflow-y-auto">
+        <PlanModePanel plan={plan} onPlanChange={setPlan} />
+      </div>
       <InputBox onSend={handleSend} disabled={isLoading} />
 
       <PermissionDialog

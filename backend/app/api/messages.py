@@ -1,4 +1,9 @@
-"""API routes for sending messages and controlling sessions."""
+"""API routes for sending messages and controlling sessions.
+
+Message read/now comes from the Claude Code CLI jsonl history (the single
+source of truth), not from the SQLite messages table. Deletes rewrite the
+jsonl in place (paired with their replies) so the CLI can still resume.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.setting_service import _DEFAULT_SETTINGS
 from app.database import async_session_maker, get_db
 from app.services.claude_manager import session_manager
+from app.services.history_service import HistoryService
 from app.services.project_service import ProjectService
 from app.services.session_service import SessionService
 
@@ -29,79 +35,19 @@ async def _get_session_service(db: AsyncSession = Depends(get_db)) -> SessionSer
     return SessionService(db)
 
 
-def _make_persist_callback(session_id: str) -> Any:
-    """Return a callback that persists Claude events for a session."""
-
-    def callback(sid: str, payload: dict[str, Any]) -> None:
-        if sid != session_id:
-            return
-        event_type = payload.get("type")
-        if event_type == "assistant":
-            text = payload.get("text", "")
-            if text:
-                _persist_message(session_id, "assistant", "text", text)
-            for tool in payload.get("tool_uses", []):
-                _persist_message(
-                    session_id,
-                    "tool",
-                    "tool_use",
-                    f"Using tool: {tool.get('name')}",
-                    tool_name=tool.get("name"),
-                    tool_input=tool.get("input"),
-                )
-
-    return callback
-
-
-def _persist_message(
+async def _resolve_session(
     session_id: str,
-    role: str,
-    type: str,
-    content: str,
-    *,
-    tool_name: str | None = None,
-    tool_input: dict[str, Any] | None = None,
-) -> None:
-    """Persist a message asynchronously using a fresh DB session."""
-    import asyncio
-
-    asyncio.create_task(
-        _save_message(
-            session_id,
-            role,
-            type,
-            content,
-            tool_name=tool_name,
-            tool_input=tool_input,
-        )
-    )
-
-
-async def _save_message(
-    session_id: str,
-    role: str,
-    type: str,
-    content: str,
-    *,
-    tool_name: str | None = None,
-    tool_input: dict[str, Any] | None = None,
-) -> None:
-    """Save a message using a fresh database session."""
-    async with async_session_maker() as db:
-        service = SessionService(db)
-        try:
-            await service.add_message(
-                session_id=session_id,
-                role=role,
-                type=type,
-                content=content,
-                tool_name=tool_name,
-                tool_input=tool_input,
-            )
-        except Exception:
-            import logging
-
-            logging.getLogger(__name__).exception("Failed to persist message")
+    session_service: SessionService,
+    project_service: ProjectService,
+) -> tuple[Any, Any]:
+    """Load a session and its project, or 404."""
+    session = await session_service.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    project = await project_service.get_project(session.project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return session, project
 
 
 async def _ensure_session_running(
@@ -123,11 +69,13 @@ async def _ensure_session_running(
             await session_manager.send_message(session_id, initial_message)
         return
 
-    logger.info("Starting Claude session %s for project %s", session_id, project_path)
-    session_manager.register_persist_callback(
-        session_id, _make_persist_callback(session_id)
-    )
+    # Only resume when the CLI actually has an on-disk conversation to recover.
+    # The CLI writes one jsonl per session; if it exists with content, the
+    # session can be resumed, otherwise resuming would crash with
+    # "No conversation found with session ID".
+    resume = HistoryService(project_path, session_id).exists()
 
+    logger.info("Starting Claude session %s for project %s", session_id, project_path)
     merged = {**_DEFAULT_SETTINGS, **(settings or {})}
     model = merged.get("model") or None
     permission_mode = merged.get("permission_mode", "acceptEdits")
@@ -145,7 +93,9 @@ async def _ensure_session_running(
             effort=effort,
             max_turns=max_turns,
             tools_enabled=tools_enabled,
+            mcp_servers=merged.get("mcp_servers"),
             initial_message=initial_message,
+            resume=resume,
         )
         logger.info(
             "Session %s started, engine status=%s",
@@ -169,13 +119,9 @@ async def start_session(
     session_service: SessionService = Depends(_get_session_service),
 ) -> dict[str, Any]:
     """Start the Claude CLI for a session."""
-    session = await session_service.get_session(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    project = await project_service.get_project(session.project_id)
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+    session, project = await _resolve_session(
+        session_id, session_service, project_service
+    )
 
     await _ensure_session_running(
         session_id, Path(project.path), session.language, settings=session.settings
@@ -207,25 +153,21 @@ async def resume_session(
     session_service: SessionService = Depends(_get_session_service),
 ) -> dict[str, Any]:
     """Resume a previously stopped Claude CLI session."""
-    session = await session_service.get_session(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    project = await project_service.get_project(session.project_id)
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+    session, project = await _resolve_session(
+        session_id, session_service, project_service
+    )
 
     if session_manager.get_status(session_id) == "running":
         return {"status": "running"}
 
-    session_manager.register_persist_callback(
-        session_id, _make_persist_callback(session_id)
-    )
+    # Only --resume when the CLI has on-disk history; otherwise start fresh.
+    resume = HistoryService(Path(project.path), session_id).exists()
+
     await session_manager.start_session(
         session_id=session_id,
         project_path=Path(project.path),
         language=session.language,
-        resume=True,
+        resume=resume,
     )
     await session_service.update_status(session_id, "running")
     return {"status": "running"}
@@ -238,25 +180,19 @@ async def send_message(
     project_service: ProjectService = Depends(_get_project_service),
     session_service: SessionService = Depends(_get_session_service),
 ) -> dict[str, Any]:
-    """Send a user message to a session, auto-starting it if needed."""
+    """Send a user message to a session, auto-starting it if needed.
+
+    The message itself is not persisted by us: the CLI writes it to its own
+    jsonl the moment it processes the stdin input, and that file is the read
+    path for history.
+    """
     content = payload.get("content")
     if not content:
         raise HTTPException(status_code=422, detail="content is required")
 
-    session = await session_service.get_session(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    await session_service.add_message(
-        session_id=session_id,
-        role="user",
-        type="text",
-        content=content,
+    session, project = await _resolve_session(
+        session_id, session_service, project_service
     )
-
-    project = await project_service.get_project(session.project_id)
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
 
     await _ensure_session_running(
         session_id,
@@ -271,15 +207,46 @@ async def send_message(
 @router.get("/messages")
 async def list_messages(
     session_id: str,
+    project_service: ProjectService = Depends(_get_project_service),
     session_service: SessionService = Depends(_get_session_service),
 ) -> dict[str, Any]:
-    """List messages for a session."""
-    session = await session_service.get_session(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
+    """List messages for a session, read from the CLI's jsonl history."""
+    session, project = await _resolve_session(
+        session_id, session_service, project_service
+    )
+    messages = HistoryService(Path(project.path), session_id).list_messages()
+    return {"messages": messages}
 
-    messages = await session_service.list_messages(session_id)
-    return {"messages": [session_service.message_to_dict(m) for m in messages]}
+
+@router.delete("/turns/{turn_uuid}")
+async def delete_turn(
+    session_id: str,
+    turn_uuid: str,
+    project_service: ProjectService = Depends(_get_project_service),
+    session_service: SessionService = Depends(_get_session_service),
+) -> dict[str, Any]:
+    """Delete a whole turn (prompt + its reply) from the CLI's jsonl history.
+
+    Refuses while the CLI is running to avoid racing the process that owns the
+    file.
+    """
+    if session_manager.get_status(session_id) == "running":
+        raise HTTPException(
+            status_code=409,
+            detail="Stop the session before deleting history",
+        )
+
+    session, project = await _resolve_session(
+        session_id, session_service, project_service
+    )
+    history = HistoryService(Path(project.path), session_id)
+    if not history.exists():
+        raise HTTPException(status_code=404, detail="No history for this session")
+
+    deleted = history.delete_turn(turn_uuid)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Turn not found")
+    return {"deleted": True, "turn_uuid": turn_uuid}
 
 
 @router.post("/answer")

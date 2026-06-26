@@ -101,7 +101,12 @@ class SessionService:
         return message
 
     async def list_messages(self, session_id: str) -> list[Message]:
-        """Return all messages for a session ordered by creation time."""
+        """Return all messages for a session ordered by creation time.
+
+        Note: the live history read path is :class:`HistoryService`, which reads
+        the CLI jsonl. This helper is kept for tests of the legacy Message
+        table and is not used by the history UI.
+        """
         result = await self.session.execute(
             select(Message)
             .where(Message.session_id == session_id)

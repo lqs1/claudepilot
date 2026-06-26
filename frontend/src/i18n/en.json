@@ -6,7 +6,9 @@
     "send": "Send",
     "thinking": "Claude is thinking...",
     "startSession": "Start Session",
-    "stopSession": "Stop Session"
+    "stopSession": "Stop Session",
+    "stopBeforeDelete": "Stop the session before deleting",
+    "confirmDeleteTurn": "Delete this turn and its reply? This also removes it from the CLI history."
   },
   "project": {
     "title": "Projects",

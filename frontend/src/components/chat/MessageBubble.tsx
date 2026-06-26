@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -8,59 +10,122 @@ import type { Message } from "@/api";
 
 interface MessageBubbleProps {
   message: Message;
+  onDeleteTurn?: (turnUuid: string) => void;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onDeleteTurn }: MessageBubbleProps) {
   const { i18n } = useTranslation();
   const isUser = message.role === "user";
   const isTool = message.role === "tool";
+  // A user prompt shares its uuid with the assistant reply of the same turn,
+  // so deletion is anchored on user messages.
+  const canDelete = isUser && !!message.uuid && !!onDeleteTurn;
 
   return (
     <div
-      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+      className={cn(
+        "group flex w-full",
+        isUser ? "justify-end" : "justify-start",
+      )}
     >
-      <div
-        className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : isTool
-              ? "bg-amber-50 text-amber-900 border border-amber-200 dark:bg-amber-950 dark:text-amber-100 dark:border-amber-900"
-              : "bg-card text-card-foreground border border-border",
+      <div className="relative">
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => onDeleteTurn?.(message.uuid!)}
+            title="Delete this turn"
+            className="absolute -left-9 top-1/2 -translate-y-1/2 hidden rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover:block group-hover:opacity-100"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         )}
-      >
-        {isUser && (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {message.content}
-          </p>
-        )}
-
-        {message.role === "assistant" && (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {message.content || " "}
-            </ReactMarkdown>
-          </div>
-        )}
-
-        {isTool && (
-          <div className="text-sm">
-            <div className="font-medium mb-1">🔧 {message.tool_name}</div>
-            <pre className="text-xs bg-black/5 dark:bg-white/5 p-2 rounded overflow-auto">
-              {JSON.stringify(message.tool_input, null, 2)}
-            </pre>
-          </div>
-        )}
-
         <div
           className={cn(
-            "text-[10px] mt-1 opacity-60",
-            isUser ? "text-right" : "text-left",
+            "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
+            isUser
+              ? "bg-primary text-primary-foreground"
+              : isTool
+                ? "bg-amber-50 text-amber-900 border border-amber-200 dark:bg-amber-950 dark:text-amber-100 dark:border-amber-900"
+                : "bg-card text-card-foreground border border-border",
           )}
         >
-          {new Date(message.created_at).toLocaleTimeString(i18n.language)}
+          {isUser && (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+              {message.content}
+            </p>
+          )}
+
+          {message.role === "assistant" && (
+            <>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content || " "}
+                </ReactMarkdown>
+              </div>
+              {message.tool_uses && message.tool_uses.length > 0 && (
+                <div className="mt-2 space-y-2 not-prose">
+                  {message.tool_uses.map((tool) => (
+                    <ToolCallCard
+                      key={tool.id}
+                      name={tool.name}
+                      input={tool.input}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {isTool && (
+            <div className="text-sm">
+              <div className="font-medium mb-1">🔧 {message.tool_name}</div>
+              <pre className="text-xs bg-black/5 dark:bg-white/5 p-2 rounded overflow-auto">
+                {JSON.stringify(message.tool_input, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "text-[10px] mt-1 opacity-60",
+              isUser ? "text-right" : "text-left",
+            )}
+          >
+            {new Date(message.created_at).toLocaleTimeString(i18n.language)}
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ToolCallCard({
+  name,
+  input,
+}: {
+  name: string;
+  input: Record<string, unknown>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="rounded-lg border border-border bg-background/60">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-1 px-3 py-1.5 text-xs font-medium text-left hover:bg-muted/40"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
+        <span>🔧 {name}</span>
+      </button>
+      {expanded && (
+        <pre className="text-xs bg-black/5 dark:bg-white/5 px-3 py-2 rounded-b-lg overflow-auto border-t border-border">
+          {JSON.stringify(input, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

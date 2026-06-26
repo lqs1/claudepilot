@@ -23,7 +23,7 @@ export function InputBox({ onSend, disabled }: InputBoxProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-4 border-t border-border bg-card"
+      className="flex-shrink-0 p-4 border-t border-border bg-card"
     >
       <div className="flex items-end gap-2 max-w-4xl mx-auto">
         <textarea

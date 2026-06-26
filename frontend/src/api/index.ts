@@ -28,6 +28,7 @@ export interface Session {
 
 export interface Message {
   id: string;
+  uuid?: string;
   session_id: string;
   role: string;
   type: string;
@@ -36,6 +37,11 @@ export interface Message {
   tool_input?: Record<string, unknown>;
   tool_output?: string;
   tool_status?: string;
+  tool_uses?: Array<{
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  }>;
   created_at: string;
 }
 
@@ -90,6 +96,10 @@ export const messageApi = {
       action,
       message,
     }),
+  deleteTurn: (sessionId: string, turnUuid: string) =>
+    api.delete<{ deleted: boolean }>(
+      `/sessions/${sessionId}/turns/${turnUuid}`,
+    ),
 };
 
 export interface FileEntry {

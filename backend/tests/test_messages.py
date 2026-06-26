@@ -1,18 +1,21 @@
-"""Integration tests for message sending and Claude responses."""
+"""Integration tests for message sending and Claude responses.
+
+History lives in the CLI's jsonl (see HistoryService). These tests drive the
+real CLI over HTTP and assert that the reply surfaces through the jsonl-based
+``GET /messages`` endpoint.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import uuid
-from typing import Any
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from app.database import Base, async_session_maker, engine
+from app.database import Base, engine
 from app.main import app
-from app.services.session_service import SessionService
 
 
 @pytest_asyncio.fixture
@@ -32,8 +35,8 @@ async def client() -> AsyncClient:
 
 @pytest.mark.asyncio
 async def test_send_message_receives_assistant_reply(client: AsyncClient) -> None:
-    """Sending a message starts Claude and persists the assistant reply."""
-    # Create a project and session.
+    """Sending a message starts Claude; the reply is readable via history."""
+    # Use a unique path so this session's jsonl is isolated.
     response = await client.post(
         "/api/projects",
         json={"name": f"MsgTest-{uuid.uuid4().hex[:6]}", "path": "/tmp"},
@@ -55,18 +58,22 @@ async def test_send_message_receives_assistant_reply(client: AsyncClient) -> Non
         timeout=30,
     )
     assert response.status_code == 200
-    data: dict[str, Any] = response.json()
-    assert data["status"] == "sent"
+    assert response.json()["status"] == "sent"
 
-    # Wait for the assistant reply to be persisted.
+    # The reply surfaces in the jsonl-backed history (poll until it appears).
+    assistant_text = ""
     for _ in range(50):
-        async with async_session_maker() as db:
-            service = SessionService(db)
-            messages = await service.list_messages(session_id)
-            assistant_messages = [m for m in messages if m.role == "assistant"]
-            if assistant_messages:
-                break
+        resp = await client.get(f"/api/sessions/{session_id}/messages")
+        messages = resp.json()["messages"]
+        assistant_messages = [m for m in messages if m["role"] == "assistant"]
+        if assistant_messages and assistant_messages[-1]["content"]:
+            assistant_text = assistant_messages[-1]["content"]
+            break
         await asyncio.sleep(0.5)
+
+    assert assistant_text, "No assistant reply appeared in history"
+    # Every history message carries the turn uuid used for deletion.
+    assert all(m.get("uuid") for m in messages)
 
 
 @pytest.mark.asyncio

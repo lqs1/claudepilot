@@ -6,7 +6,9 @@
     "send": "发送",
     "thinking": "Claude 思考中...",
     "startSession": "启动会话",
-    "stopSession": "停止会话"
+    "stopSession": "停止会话",
+    "stopBeforeDelete": "删除前请先停止会话",
+    "confirmDeleteTurn": "删除这一轮对话及其回复？该操作会同时从 CLI 历史中移除。"
   },
   "project": {
     "title": "项目",
