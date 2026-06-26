@@ -78,8 +78,10 @@ class ClaudeSessionManager:
         resume: bool = False,
     ) -> ClaudeEngine:
         """Start a new Claude CLI session."""
-        if session_id in self._engines:
-            raise RuntimeError(f"Session {session_id} is already running")
+        existing = self._engines.pop(session_id, None)
+        if existing is not None:
+            await existing.stop()
+            logger.warning("Replaced stale engine for session %s", session_id)
 
         system_prompt = self._system_prompt_for_language(language)
         engine = ClaudeEngine(
