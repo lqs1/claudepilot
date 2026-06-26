@@ -40,6 +40,13 @@
     "save": "Save",
     "cancel": "Cancel",
     "saving": "Saving...",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "presets": "Presets",
+    "selectPreset": "— Select a preset —",
+    "saveAsPreset": "Save as Preset",
+    "deletePreset": "Delete preset",
+    "confirmDeletePreset": "Delete this preset?",
+    "presetNamePrompt": "Preset name:",
+    "saveAsGlobal": "Save as Global Default"
   }
 }

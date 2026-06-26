@@ -16,6 +16,12 @@ _DEFAULT_SETTINGS: dict[str, Any] = {
     "tools_enabled": True,
 }
 
+# Setting keys a session/preset may carry. Keep this as the single source of
+# truth so settings.py and preset_service stay in sync.
+ALLOWED_SETTING_KEYS: frozenset[str] = frozenset(
+    {"model", "effort", "permission_mode", "tools_enabled", "max_turns"}
+)
+
 
 class SettingService:
     """Service for global settings CRUD operations."""

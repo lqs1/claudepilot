@@ -9,12 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.services.session_service import SessionService
-from app.services.setting_service import SettingService
+from app.services.setting_service import ALLOWED_SETTING_KEYS, SettingService
 
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
-_ALLOWED_KEYS = {"model", "effort", "permission_mode", "tools_enabled", "max_turns"}
+_ALLOWED_KEYS = ALLOWED_SETTING_KEYS
 
 
 def _get_session_service(db: AsyncSession = Depends(get_db)) -> SessionService:

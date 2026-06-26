@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
-import { settingsApi } from "@/api";
+import { presetApi, settingsApi } from "@/api";
+import type { Preset } from "@/api";
 
 interface SessionSettingsData {
   model: string;
@@ -20,12 +21,15 @@ const DEFAULT_SETTINGS: SessionSettingsData = {
   max_turns: undefined,
 };
 
-const MODEL_OPTIONS = [
-  { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-  { value: "claude-opus-4", label: "Claude Opus 4" },
-  { value: "claude-haiku-4", label: "Claude Haiku 4" },
+// Suggestions only (datalist) — the model field is free text so new CLI
+// models work without a code change. Do NOT hardcode a select (v2 §7).
+const MODEL_SUGGESTIONS = [
+  "claude-sonnet-4-20250514",
+  "claude-opus-4",
+  "claude-haiku-4",
 ];
 
+// Effort choices mirror the live `claude --help` for --effort.
 const EFFORT_OPTIONS = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
@@ -34,11 +38,14 @@ const EFFORT_OPTIONS = [
   { value: "max", label: "Max" },
 ];
 
+// Permission modes mirror `claude --help` --permission-mode choices exactly.
 const PERMISSION_OPTIONS = [
+  { value: "default", label: "Default" },
   { value: "acceptEdits", label: "Accept Edits" },
-  { value: "acceptAll", label: "Accept All" },
-  { value: "rejectAll", label: "Reject All" },
-  { value: "askUser", label: "Ask User" },
+  { value: "plan", label: "Plan" },
+  { value: "auto", label: "Auto" },
+  { value: "bypassPermissions", label: "Bypass Permissions" },
+  { value: "dontAsk", label: "Don't Ask" },
 ];
 
 interface SessionSettingsProps {
@@ -73,7 +80,7 @@ function useSessionSettings(sessionId: string | null) {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  return { settings, isLoading, updateField };
+  return { settings, setSettings, isLoading, updateField };
 }
 
 function useSaveSettings(sessionId: string | null, onClose: () => void) {
@@ -216,8 +223,47 @@ function ToggleField({
 
 export function SessionSettings({ sessionId, onClose }: SessionSettingsProps) {
   const { t } = useTranslation();
-  const { settings, isLoading, updateField } = useSessionSettings(sessionId);
+  const { settings, setSettings, isLoading, updateField } =
+    useSessionSettings(sessionId);
   const { isSaving, save } = useSaveSettings(sessionId, onClose);
+  const [presets, setPresets] = useState<Preset[]>([]);
+
+  useEffect(() => {
+    presetApi
+      .list()
+      .then((res) => setPresets(res.data.presets))
+      .catch(() => {});
+  }, []);
+
+  const applyPreset = (presetId: string) => {
+    const preset = presets.find((p) => p.id === presetId);
+    if (!preset) return;
+    setSettings({ ...DEFAULT_SETTINGS, ...preset.settings });
+  };
+
+  const saveAsPreset = async () => {
+    const name = window.prompt(t("settings.presetNamePrompt"), "");
+    if (!name?.trim()) return;
+    try {
+      const res = await presetApi.create(name.trim(), settings);
+      setPresets((prev) => [...prev, res.data.preset]);
+    } catch (err) {
+      console.error("Failed to save preset", err);
+      alert(err instanceof Error ? err.message : "Failed to save preset");
+    }
+  };
+
+  const deletePreset = async (presetId: string) => {
+    const preset = presets.find((p) => p.id === presetId);
+    if (!preset) return;
+    if (!window.confirm(t("settings.confirmDeletePreset"))) return;
+    try {
+      await presetApi.delete(presetId);
+      setPresets((prev) => prev.filter((p) => p.id !== presetId));
+    } catch (err) {
+      console.error("Failed to delete preset", err);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -235,18 +281,76 @@ export function SessionSettings({ sessionId, onClose }: SessionSettingsProps) {
           </button>
         </div>
 
+        {/* Preset management: apply / save / delete */}
+        <div className="mb-4 space-y-2 rounded-md border border-input bg-background p-3">
+          <label className="block text-sm font-medium">
+            {t("settings.presets")}
+          </label>
+          <div className="flex items-center gap-2">
+            <select
+              value=""
+              onChange={(e) => e.target.value && applyPreset(e.target.value)}
+              className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">
+                {t("settings.selectPreset") || "— Select a preset —"}
+              </option>
+              {presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={saveAsPreset}
+              disabled={isLoading}
+              title={t("settings.saveAsPreset")}
+            >
+              {t("settings.saveAsPreset")}
+            </Button>
+          </div>
+          {presets.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {presets.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => deletePreset(p.id)}
+                  className="group inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-1 text-xs hover:border-destructive hover:text-destructive"
+                  title={t("settings.deletePreset")}
+                >
+                  {p.name}
+                  <span className="opacity-60 group-hover:opacity-100">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {isLoading ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             {t("settings.loading")}
           </div>
         ) : (
           <div className="space-y-4">
-            <SelectField
-              label={t("settings.model")}
-              value={settings.model}
-              options={MODEL_OPTIONS}
-              onChange={(v) => updateField("model", v)}
-            />
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                {t("settings.model")}
+              </label>
+              <input
+                list="model-suggestions"
+                value={settings.model}
+                onChange={(e) => updateField("model", e.target.value)}
+                placeholder={t("settings.model") || "model"}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+              <datalist id="model-suggestions">
+                {MODEL_SUGGESTIONS.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </div>
             <SelectField
               label={t("settings.effort")}
               value={settings.effort}

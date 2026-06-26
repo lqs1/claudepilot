@@ -90,6 +90,30 @@ class GlobalSetting(Base):
     )
 
 
+class Preset(Base):
+    """A named bundle of session-start settings (a ClaudePilot value-add).
+
+    Stored separately from the CLI's own configuration, which remains the
+    source of truth for those values when a session actually runs. A preset
+    is just a convenient, reusable set of overrides the user can apply to a
+    session's settings in one click.
+    """
+
+    __tablename__ = "presets"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    settings: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+
 class Message(Base):
     """A single message or event within a session."""
 

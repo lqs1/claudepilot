@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import filesystem, messages, projects, sessions, settings, shell
+from app.api import filesystem, messages, presets, projects, sessions, settings, shell
 from app.database import close_db, init_db
 from app.services.setting_service import SettingService
 from app.websocket import websocket_manager
@@ -51,6 +51,7 @@ app.add_middleware(
 app.include_router(projects.router)
 app.include_router(sessions.router)
 app.include_router(messages.router)
+app.include_router(presets.router)
 app.include_router(filesystem.router)
 app.include_router(settings.router)
 app.include_router(shell.router)

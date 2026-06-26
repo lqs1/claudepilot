@@ -137,6 +137,25 @@ export interface Settings {
   max_turns?: number;
 }
 
+export interface Preset {
+  id: string;
+  name: string;
+  settings: Settings;
+  created_at: string;
+  updated_at: string;
+}
+
+export const presetApi = {
+  list: () => api.get<{ presets: Preset[] }>("/presets"),
+  create: (name: string, settings: Partial<Settings>) =>
+    api.post<{ preset: Preset }>("/presets", { name, settings }),
+  update: (
+    id: string,
+    payload: { name?: string; settings?: Partial<Settings> },
+  ) => api.put<{ preset: Preset }>(`/presets/${id}`, payload),
+  delete: (id: string) => api.delete<{ deleted: boolean }>(`/presets/${id}`),
+};
+
 export const settingsApi = {
   getGlobal: () => api.get<{ settings: Settings }>("/settings"),
   updateGlobal: (settings: Partial<Settings>) =>

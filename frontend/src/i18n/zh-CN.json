@@ -40,6 +40,13 @@
     "save": "保存",
     "cancel": "取消",
     "saving": "保存中...",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "presets": "预设",
+    "selectPreset": "— 选择预设 —",
+    "saveAsPreset": "存为预设",
+    "deletePreset": "删除预设",
+    "confirmDeletePreset": "确定删除该预设吗？",
+    "presetNamePrompt": "预设名称：",
+    "saveAsGlobal": "存为全局默认"
   }
 }
