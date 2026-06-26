@@ -28,22 +28,27 @@ export function MessageList({
   }, [messages, isLoading]);
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.map((message) => (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          onDeleteTurn={onDeleteTurn}
-        />
-      ))}
-      {isLoading && (
-        <div className="flex justify-start">
-          <div className="bg-muted rounded-2xl px-4 py-3 text-sm text-muted-foreground">
-            Claude is thinking...
+    <div
+      ref={containerRef}
+      className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
+    >
+      <div className="max-w-4xl mx-auto w-full space-y-4">
+        {messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            onDeleteTurn={onDeleteTurn}
+          />
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-muted rounded-2xl px-4 py-3 text-sm text-muted-foreground">
+              Claude is thinking...
+            </div>
           </div>
-        </div>
-      )}
-      <div ref={bottomRef} />
+        )}
+        <div ref={bottomRef} />
+      </div>
     </div>
   );
 }

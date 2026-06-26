@@ -345,8 +345,8 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border bg-card">
         <div className="flex items-center gap-3 text-sm font-medium">
           <span>
             {t("session.title")} · {language.toUpperCase()}
@@ -392,12 +392,13 @@ export function ChatPage() {
         isLoading={isLoading}
         onDeleteTurn={handleDeleteTurn}
       />
-      {/* PlanModePanel sits between the message list and the input box.
-          Wrap it so it never grows to push the input box off-screen: it keeps
-          its intrinsic size and scrolls internally if the plan is long. */}
-      <div className="flex-shrink-0 max-h-[40vh] overflow-y-auto">
-        <PlanModePanel plan={plan} onPlanChange={setPlan} />
-      </div>
+      {/* PlanModePanel only renders when there is an active plan, and is
+          clamped so it can never push the input box off-screen. */}
+      {plan?.isActive && (
+        <div className="flex-shrink-0 min-h-0 max-h-[40vh] overflow-y-auto">
+          <PlanModePanel plan={plan} onPlanChange={setPlan} />
+        </div>
+      )}
       <InputBox onSend={handleSend} disabled={isLoading} />
 
       <PermissionDialog

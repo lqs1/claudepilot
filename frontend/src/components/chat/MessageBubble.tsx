@@ -77,11 +77,11 @@ export function MessageBubble({ message, onDeleteTurn }: MessageBubbleProps) {
           )}
 
           {isTool && (
-            <div className="text-sm">
-              <div className="font-medium mb-1">🔧 {message.tool_name}</div>
-              <pre className="text-xs bg-black/5 dark:bg-white/5 p-2 rounded overflow-auto">
-                {JSON.stringify(message.tool_input, null, 2)}
-              </pre>
+            <div className="not-prose">
+              <ToolCallCard
+                name={message.tool_name || "tool"}
+                input={message.tool_input || {}}
+              />
             </div>
           )}
 
@@ -99,6 +99,16 @@ export function MessageBubble({ message, onDeleteTurn }: MessageBubbleProps) {
   );
 }
 
+function toolSummary(input: Record<string, unknown>): string {
+  // Give a concise, meaningful one-liner instead of always dumping JSON.
+  const cmd = input.command;
+  if (typeof cmd === "string") return cmd;
+  const fp = input.file_path;
+  if (typeof fp === "string") return fp;
+  if (typeof input.path === "string") return input.path;
+  return "";
+}
+
 function ToolCallCard({
   name,
   input,
@@ -107,22 +117,27 @@ function ToolCallCard({
   input: Record<string, unknown>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const summary = toolSummary(input);
   return (
     <div className="rounded-lg border border-border bg-background/60">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-1 px-3 py-1.5 text-xs font-medium text-left hover:bg-muted/40"
+        className="flex w-full items-center gap-1.5 px-3 py-1 text-[11px] text-muted-foreground text-left hover:bg-muted/40"
+        title={name}
       >
         {expanded ? (
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="h-3 w-3 flex-shrink-0" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-3 w-3 flex-shrink-0" />
         )}
-        <span>🔧 {name}</span>
+        <span className="font-medium">{name}</span>
+        {summary && (
+          <span className="truncate text-foreground/60">{summary}</span>
+        )}
       </button>
       {expanded && (
-        <pre className="text-xs bg-black/5 dark:bg-white/5 px-3 py-2 rounded-b-lg overflow-auto border-t border-border">
+        <pre className="text-[11px] font-mono bg-black/5 dark:bg-white/5 px-3 py-2 rounded-b-lg overflow-auto max-h-60 border-t border-border">
           {JSON.stringify(input, null, 2)}
         </pre>
       )}
