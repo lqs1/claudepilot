@@ -58,6 +58,9 @@ class Session(Base):
     )
     language: Mapped[str] = mapped_column(String(10), nullable=False, default="zh")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="stopped")
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     settings: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc
@@ -72,6 +75,18 @@ class Session(Base):
         back_populates="session",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+
+
+class GlobalSetting(Base):
+    """A global key-value setting persisted in the database."""
+
+    __tablename__ = "global_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSON, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
     )
 
 

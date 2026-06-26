@@ -11,13 +11,19 @@ interface MessageListProps {
 
 export function MessageList({ messages, isLoading }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = containerRef.current;
+    const bottom = bottomRef.current;
+    if (!container || !bottom) return;
+    // Scroll only inside the message list container instead of the whole page.
+    const top = bottom.offsetTop;
+    container.scrollTo({ top, behavior: "smooth" });
   }, [messages, isLoading]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}

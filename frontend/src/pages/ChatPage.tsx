@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Settings } from "lucide-react";
@@ -14,6 +14,65 @@ import { messageApi } from "@/api";
 import { useAppStore } from "@/stores/appStore";
 import { useWebSocket, type ClaudeEventHandler } from "@/hooks/useWebSocket";
 import { parsePlanSteps, mergeSteps, type PlanState } from "@/lib/plan";
+
+function formatElapsed(totalSeconds: number): string {
+  const mins = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const secs = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${mins}:${secs}`;
+}
+
+function useSessionTimer(sessionId: string | null, isRunning: boolean) {
+  const sessions = useAppStore((state) => state.sessions);
+  const session = useMemo(
+    () => sessions.find((s) => s.id === sessionId),
+    [sessions, sessionId],
+  );
+  const startedAt = session?.started_at
+    ? new Date(session.started_at).getTime()
+    : null;
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!startedAt || !isRunning) {
+      setElapsed(0);
+      return;
+    }
+    const update = () => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [startedAt, isRunning]);
+
+  return isRunning && startedAt ? formatElapsed(elapsed) : "--:--";
+}
+
+function StatusIndicator({ status }: { status: string | null }) {
+  if (!status) return null;
+  const labels: Record<string, string> = {
+    idle: "Idle",
+    thinking: "Thinking",
+    writing: "Writing",
+    error: "Error",
+  };
+  const colors: Record<string, string> = {
+    idle: "bg-green-500",
+    thinking: "bg-amber-500 animate-pulse",
+    writing: "bg-primary animate-pulse",
+    error: "bg-red-500",
+  };
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
+      <span
+        className={`h-2 w-2 rounded-full ${colors[status] || "bg-muted"}`}
+      />
+      {labels[status] || status}
+    </span>
+  );
+}
 interface PermissionState {
   sessionId: string;
   toolUseId: string;
@@ -45,6 +104,8 @@ export function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  const elapsed = useSessionTimer(selectedSessionId, isRunning);
 
   const handlePermissionRequest: ClaudeEventHandler["onPermissionRequest"] =
     useCallback((sessionId, data) => {
@@ -125,7 +186,7 @@ export function ChatPage() {
     onPlan: handlePlan,
   };
 
-  const { subscribe, unsubscribe } = useWebSocket(wsHandler);
+  const { subscribe, unsubscribe, status } = useWebSocket(wsHandler);
   const sessionMessages = selectedSessionId
     ? messages[selectedSessionId] || []
     : [];
@@ -249,8 +310,14 @@ export function ChatPage() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-        <div className="text-sm font-medium">
-          {t("session.title")} · {language.toUpperCase()}
+        <div className="flex items-center gap-3 text-sm font-medium">
+          <span>
+            {t("session.title")} · {language.toUpperCase()}
+          </span>
+          <span className="text-xs text-muted-foreground font-mono">
+            {elapsed}
+          </span>
+          <StatusIndicator status={status} />
         </div>
         <div className="flex items-center gap-2">
           {error && (

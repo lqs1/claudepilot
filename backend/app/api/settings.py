@@ -9,51 +9,57 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.services.session_service import SessionService
+from app.services.setting_service import SettingService
+
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
-# Global default settings stored in memory (no persistent DB table for now).
-_default_settings: dict[str, Any] = {
-    "model": "claude-sonnet-4-20250514",
-    "effort": "normal",
-    "permission_mode": "acceptEdits",
-    "tools_enabled": True,
-}
+_ALLOWED_KEYS = {"model", "effort", "permission_mode", "tools_enabled", "max_turns"}
 
 
 def _get_session_service(db: AsyncSession = Depends(get_db)) -> SessionService:
     return SessionService(db)
 
 
+def _get_setting_service(db: AsyncSession = Depends(get_db)) -> SettingService:
+    return SettingService(db)
+
+
 @router.get("")
-async def get_settings() -> dict[str, Any]:
+async def get_settings(
+    setting_service: SettingService = Depends(_get_setting_service),
+) -> dict[str, Any]:
     """Return the global default settings."""
-    return {"settings": _default_settings.copy()}
+    settings = await setting_service.get_global_settings()
+    return {"settings": settings}
 
 
 @router.put("")
-async def update_settings(payload: dict[str, Any]) -> dict[str, Any]:
+async def update_settings(
+    payload: dict[str, Any],
+    setting_service: SettingService = Depends(_get_setting_service),
+) -> dict[str, Any]:
     """Update the global default settings."""
-    global _default_settings
-    allowed_keys = {"model", "effort", "permission_mode", "tools_enabled", "max_turns"}
-    for key, value in payload.items():
-        if key not in allowed_keys:
+    for key in payload:
+        if key not in _ALLOWED_KEYS:
             raise HTTPException(status_code=422, detail=f"Unknown setting: {key}")
-        _default_settings[key] = value
-    return {"settings": _default_settings.copy()}
+    settings = await setting_service.set_global_settings(payload)
+    return {"settings": settings}
 
 
 @router.get("/session/{session_id}")
 async def get_session_settings(
     session_id: str,
     session_service: SessionService = Depends(_get_session_service),
+    setting_service: SettingService = Depends(_get_setting_service),
 ) -> dict[str, Any]:
     """Return session-specific settings merged with global defaults."""
     session = await session_service.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
+    global_settings = await setting_service.get_global_settings()
     overrides = session.settings or {}
-    merged = {**_default_settings, **overrides}
+    merged = {**global_settings, **overrides}
     return {"settings": merged}
 
 
@@ -62,17 +68,18 @@ async def update_session_settings(
     session_id: str,
     payload: dict[str, Any],
     session_service: SessionService = Depends(_get_session_service),
+    setting_service: SettingService = Depends(_get_setting_service),
 ) -> dict[str, Any]:
     """Update session-specific settings overrides."""
     session = await session_service.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    allowed_keys = {"model", "effort", "permission_mode", "tools_enabled", "max_turns"}
-    for key, value in payload.items():
-        if key not in allowed_keys:
+    for key in payload:
+        if key not in _ALLOWED_KEYS:
             raise HTTPException(status_code=422, detail=f"Unknown setting: {key}")
     session.settings = {**(session.settings or {}), **payload}
     await session_service.session.commit()
     await session_service.session.refresh(session)
-    merged = {**_default_settings, **(session.settings or {})}
+    global_settings = await setting_service.get_global_settings()
+    merged = {**global_settings, **(session.settings or {})}
     return {"settings": merged}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -59,6 +60,18 @@ class SessionService:
         await self.session.refresh(session)
         return session
 
+    async def update_started_at(
+        self, session_id: str, started_at: datetime | None
+    ) -> Session | None:
+        """Update a session's started_at timestamp."""
+        session = await self.get_session(session_id)
+        if session is None:
+            return None
+        session.started_at = started_at
+        await self.session.commit()
+        await self.session.refresh(session)
+        return session
+
     async def add_message(
         self,
         session_id: str,
@@ -104,6 +117,9 @@ class SessionService:
             "title": session.title,
             "language": session.language,
             "status": session.status,
+            "started_at": session.started_at.isoformat()
+            if session.started_at
+            else None,
             "settings": session.settings,
             "created_at": session.created_at.isoformat(),
             "updated_at": session.updated_at.isoformat(),

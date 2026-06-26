@@ -21,6 +21,7 @@ export interface Session {
   title: string;
   language: "zh" | "en";
   status: string;
+  started_at: string | null;
   created_at: string;
   updated_at: string;
 }

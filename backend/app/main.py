@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import filesystem, messages, projects, sessions, settings, shell
 from app.database import close_db, init_db
+from app.services.setting_service import SettingService
 from app.websocket import websocket_manager
 
 
@@ -17,6 +18,12 @@ from app.websocket import websocket_manager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application startup and shutdown."""
     await init_db()
+    # Initialize default global settings
+    from app.database import async_session_maker
+
+    async with async_session_maker() as db_session:
+        setting_service = SettingService(db_session)
+        await setting_service.init_default_settings()
     yield
     await close_db()
 

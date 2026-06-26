@@ -8,7 +8,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from app.api.settings import _default_settings
+from app.services.setting_service import _DEFAULT_SETTINGS
 from app.database import Base, engine
 from app.main import app
 
@@ -36,8 +36,8 @@ async def test_get_default_settings(client: AsyncClient) -> None:
     assert response.status_code == 200
     data: dict[str, Any] = response.json()
     assert "settings" in data
-    assert data["settings"]["model"] == _default_settings["model"]
-    assert data["settings"]["permission_mode"] == _default_settings["permission_mode"]
+    assert data["settings"]["model"] == _DEFAULT_SETTINGS["model"]
+    assert data["settings"]["permission_mode"] == _DEFAULT_SETTINGS["permission_mode"]
 
 
 @pytest.mark.asyncio
@@ -55,8 +55,8 @@ async def test_update_global_settings(client: AsyncClient) -> None:
     await client.put(
         "/api/settings",
         json={
-            "model": _default_settings["model"],
-            "permission_mode": _default_settings["permission_mode"],
+            "model": _DEFAULT_SETTINGS["model"],
+            "permission_mode": _DEFAULT_SETTINGS["permission_mode"],
         },
     )
 
@@ -95,7 +95,7 @@ async def test_session_settings_merge(client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["settings"]["model"] == "claude-opus-4"
-    assert data["settings"]["permission_mode"] == _default_settings["permission_mode"]
+    assert data["settings"]["permission_mode"] == _DEFAULT_SETTINGS["permission_mode"]
 
 
 @pytest.mark.asyncio
@@ -120,7 +120,7 @@ async def test_update_session_settings(client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["settings"]["permission_mode"] == "acceptAll"
-    assert data["settings"]["model"] == _default_settings["model"]
+    assert data["settings"]["model"] == _DEFAULT_SETTINGS["model"]
 
 
 @pytest.mark.asyncio

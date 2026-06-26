@@ -77,11 +77,14 @@ function useSessionSettings(sessionId: string | null) {
 function useSaveSettings(sessionId: string | null, onClose: () => void) {
   const [isSaving, setIsSaving] = useState(false);
 
-  const save = async (settings: SessionSettingsData) => {
+  const save = async (settings: SessionSettingsData, applyGlobal = false) => {
     if (!sessionId) return;
     setIsSaving(true);
     try {
       await settingsApi.updateSession(sessionId, settings);
+      if (applyGlobal) {
+        await settingsApi.updateGlobal(settings);
+      }
       onClose();
     } catch (err) {
       console.error("Failed to save settings", err);
@@ -276,8 +279,16 @@ export function SessionSettings({ sessionId, onClose }: SessionSettingsProps) {
             {t("settings.cancel")}
           </Button>
           <Button
+            variant="outline"
             size="sm"
-            onClick={() => save(settings)}
+            onClick={() => save(settings, true)}
+            disabled={isSaving || isLoading}
+          >
+            {isSaving ? t("settings.saving") : t("settings.saveAsGlobal")}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => save(settings, false)}
             disabled={isSaving || isLoading}
           >
             {isSaving ? t("settings.saving") : t("settings.save")}

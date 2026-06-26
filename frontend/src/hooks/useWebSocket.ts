@@ -1,6 +1,8 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 import { useAppStore } from "@/stores/appStore";
+
+export type ClaudeStatus = "idle" | "thinking" | "writing" | "error" | null;
 
 interface WebSocketMessage {
   type: string;
@@ -30,9 +32,14 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
   const pendingSubscriptions = useRef<Set<string>>(new Set());
   const seenMessageIds = useRef<Record<string, Set<string>>>({});
   const sessionHasAssistantContent = useRef<Record<string, boolean>>({});
+  const [status, setStatus] = useState<ClaudeStatus>(null);
 
   const addMessage = useAppStore((state) => state.addMessage);
   const updateMessage = useAppStore((state) => state.updateMessage);
+
+  // Active subscriptions survive reconnects.
+  const activeSubscriptions = useRef<Set<string>>(new Set());
+  const currentSessionIdRef = useRef<string | null>(null);
 
   // Update handlerRef in useEffect instead of render phase for React 19 safety
   useEffect(() => {
@@ -47,8 +54,15 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
 
     socket.onopen = () => {
       console.log("WebSocket connected, version 2");
-      // Send any pending subscriptions
+      // Re-subscribe all active sessions on reconnect.
+      for (const sessionId of activeSubscriptions.current) {
+        socket.send(
+          JSON.stringify({ type: "subscribe", session_id: sessionId }),
+        );
+      }
+      // Send any pending subscriptions requested before connection.
       for (const sessionId of pendingSubscriptions.current) {
+        activeSubscriptions.current.add(sessionId);
         socket.send(
           JSON.stringify({ type: "subscribe", session_id: sessionId }),
         );
@@ -81,6 +95,8 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
   }, []);
 
   const subscribe = useCallback((sessionId: string) => {
+    currentSessionIdRef.current = sessionId;
+    activeSubscriptions.current.add(sessionId);
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(
         JSON.stringify({ type: "subscribe", session_id: sessionId }),
@@ -91,6 +107,11 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
   }, []);
 
   const unsubscribe = useCallback((sessionId: string) => {
+    if (currentSessionIdRef.current === sessionId) {
+      currentSessionIdRef.current = null;
+      setStatus(null);
+    }
+    activeSubscriptions.current.delete(sessionId);
     pendingSubscriptions.current.delete(sessionId);
     // Clear session tracking state when unsubscribing to prevent stale data
     delete sessionHasAssistantContent.current[sessionId];
@@ -173,6 +194,10 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
     } else if (eventType === "permission_request") {
       currentHandler?.onPermissionRequest?.(sessionId, data);
     } else if (eventType === "status") {
+      const nextStatus = (data.status as ClaudeStatus) || null;
+      if (currentSessionIdRef.current === sessionId) {
+        setStatus(nextStatus);
+      }
       currentHandler?.onStatus?.(sessionId, data);
     } else if (eventType === "plan") {
       currentHandler?.onPlan?.(sessionId, data);
@@ -208,5 +233,5 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
     };
   }, [connect]);
 
-  return { subscribe, unsubscribe };
+  return { subscribe, unsubscribe, status };
 }

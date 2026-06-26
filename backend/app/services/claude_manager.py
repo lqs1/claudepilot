@@ -54,6 +54,14 @@ class ClaudeSessionManager:
         if old is not None:
             self.remove_callback(old)
 
+    def _broadcast_status(self, session_id: str, status: str) -> None:
+        """Broadcast a status event to all registered callbacks."""
+        for callback in self._callbacks:
+            try:
+                callback(session_id, {"type": "status", "status": status})
+            except Exception:  # noqa: BLE001
+                logger.exception("Status event callback failed")
+
     async def start_session(
         self,
         session_id: str,
@@ -89,6 +97,7 @@ class ClaudeSessionManager:
         engine.add_handler(lambda event: self._on_event(session_id, event))
         self._engines[session_id] = engine
         await engine.start()
+        self._broadcast_status(session_id, "idle")
         if initial_message:
             await engine.send_message(initial_message)
         logger.info("Started Claude session %s", session_id)
@@ -97,6 +106,7 @@ class ClaudeSessionManager:
     async def send_message(self, session_id: str, content: str) -> None:
         """Send a user message to a running session."""
         engine = self._get_engine(session_id)
+        self._broadcast_status(session_id, "thinking")
         await engine.send_message(content)
 
     async def answer_question(
@@ -141,6 +151,7 @@ class ClaudeSessionManager:
         engine = self._engines.pop(session_id, None)
         if engine is not None:
             await engine.stop()
+            self._broadcast_status(session_id, "idle")
             logger.info("Stopped Claude session %s", session_id)
 
     def get_status(self, session_id: str) -> str:
@@ -155,6 +166,12 @@ class ClaudeSessionManager:
         return engine
 
     def _on_event(self, session_id: str, event: ClaudeEvent) -> None:
+        if isinstance(event, AssistantEvent):
+            status = "writing" if event.text_deltas else "thinking"
+            self._broadcast_status(session_id, status)
+        elif isinstance(event, ErrorEvent):
+            self._broadcast_status(session_id, "error")
+
         payload = self._event_to_payload(event)
         if payload is None:
             return

@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.settings import _default_settings
+from app.services.setting_service import _DEFAULT_SETTINGS
 from app.database import async_session_maker, get_db
 from app.services.claude_manager import session_manager
 from app.services.project_service import ProjectService
@@ -127,7 +128,7 @@ async def _ensure_session_running(
         session_id, _make_persist_callback(session_id)
     )
 
-    merged = {**_default_settings, **(settings or {})}
+    merged = {**_DEFAULT_SETTINGS, **(settings or {})}
     model = merged.get("model") or None
     permission_mode = merged.get("permission_mode", "acceptEdits")
     effort = merged.get("effort") or None
@@ -154,6 +155,11 @@ async def _ensure_session_running(
     except Exception:
         logger.exception("Failed to start Claude session %s", session_id)
         raise
+
+    # Record start time in DB after successful launch
+    async with async_session_maker() as db:
+        svc = SessionService(db)
+        await svc.update_started_at(session_id, datetime.now(timezone.utc))
 
 
 @router.post("/start")
@@ -190,6 +196,7 @@ async def stop_session(
 
     await session_manager.stop_session(session_id)
     await session_service.update_status(session_id, "stopped")
+    await session_service.update_started_at(session_id, None)
     return {"status": "stopped"}
 
 
