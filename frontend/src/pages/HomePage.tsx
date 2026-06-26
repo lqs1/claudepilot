@@ -370,30 +370,34 @@ export function HomePage() {
                 ),
               )}
             </div>
-            <div className="flex-1 overflow-hidden p-4">
+            {/* Each panel is absolutely positioned and fills this container, so
+                hidden panels (display:none) never leak into the visible tab's
+                layout — they don't take up flow space and stack on the same
+                footprint. */}
+            <div className="relative flex-1 overflow-hidden p-4">
               <div
-                className="h-full overflow-hidden rounded-xl bg-card"
+                className="absolute inset-4 overflow-hidden rounded-xl bg-card"
                 style={{ boxShadow: "var(--neu-raised)" }}
                 hidden={activeTab !== "chat"}
               >
                 <ChatPage />
               </div>
               <div
-                className="h-full overflow-hidden rounded-xl bg-card"
+                className="absolute inset-4 overflow-hidden rounded-xl bg-card"
                 style={{ boxShadow: "var(--neu-raised)" }}
                 hidden={activeTab !== "changes"}
               >
                 <ChangesPage sessionId={selectedSessionId} />
               </div>
               <div
-                className="h-full overflow-hidden rounded-xl bg-card"
+                className="absolute inset-4 overflow-hidden rounded-xl bg-card"
                 style={{ boxShadow: "var(--neu-raised)" }}
                 hidden={activeTab !== "files"}
               >
                 <FileBrowserPage projectId={selectedProjectId} />
               </div>
               <div
-                className="flex h-full flex-col overflow-hidden rounded-xl bg-card"
+                className="absolute inset-4 flex flex-col overflow-hidden rounded-xl bg-card"
                 style={{ boxShadow: "var(--neu-raised)" }}
                 hidden={activeTab !== "terminal"}
               >

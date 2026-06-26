@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Some Tailwind display utilities (flex, grid, block) set `display` and would
+   otherwise win over the standard [hidden] attribute, making hidden elements
+   leak back into the layout. Ensure hidden truly means hidden. */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   --background: #e8ecf1;
   --card: #e8ecf1;
