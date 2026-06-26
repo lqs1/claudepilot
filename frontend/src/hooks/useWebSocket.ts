@@ -144,39 +144,30 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
         seenMessageIds.current[sessionId] ?? new Set<string>();
       seenMessageIds.current[sessionId] = sessionSeen;
 
-      // Handle text content. Assistant events arrive in order:
-      //   1) a leading event with text:"" (and the real message_id),
-      //   2) follow-up events carrying the accumulated text for the same id.
-      // The first event must still register the message_id (and create a
-      // placeholder bubble) so the later chunks append to the same message
-      // instead of creating duplicates, and so a final "result" fallback does
-      // not wrongly fire when the model only emitted a short reply.
-      if (messageId && sessionSeen.has(messageId)) {
-        // Update existing message with new text
-        if (text) {
+      // Accumulate assistant text by message_id. We only create a bubble once
+      // there is actual text — leading empty (thinking-only) events must NOT
+      // spawn an empty placeholder, or a short/no-text reply leaves a blank
+      // bubble behind. We still track the id so later chunks merge instead of
+      // duplicating.
+      if (messageId && text) {
+        if (sessionSeen.has(messageId)) {
           updateMessage(sessionId, messageId, { content: text });
-          sessionHasAssistantContent.current[sessionId] = true;
+        } else {
+          sessionSeen.add(messageId);
+          addMessage(sessionId, {
+            id: messageId,
+            session_id: sessionId,
+            role: "assistant",
+            type: "text",
+            content: text,
+            created_at: new Date().toISOString(),
+          });
         }
+        sessionHasAssistantContent.current[sessionId] = true;
       } else if (messageId) {
-        // First time we see this message_id — create it even when text is
-        // empty, so subsequent chunks for the same id are merged in.
+        // Empty/thinking event — register the id but emit no bubble yet.
         sessionSeen.add(messageId);
-        if (text) {
-          sessionHasAssistantContent.current[sessionId] = true;
-        }
-        addMessage(sessionId, {
-          id: messageId,
-          session_id: sessionId,
-          role: "assistant",
-          type: "text",
-          content: text,
-          created_at: new Date().toISOString(),
-        });
-      } else if (text || toolUses.length > 0) {
-        // No message_id — show even if text is empty but has tool uses.
-        if (text) {
-          sessionHasAssistantContent.current[sessionId] = true;
-        }
+      } else if (!messageId && text) {
         addMessage(sessionId, {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           session_id: sessionId,
@@ -185,6 +176,7 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
           content: text,
           created_at: new Date().toISOString(),
         });
+        sessionHasAssistantContent.current[sessionId] = true;
       }
 
       // Handle tool uses

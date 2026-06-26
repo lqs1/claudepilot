@@ -1,16 +1,10 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  ChevronDown,
-  ChevronRight,
-  Sparkles,
-  Trash2,
-  User,
-} from "lucide-react";
+import { Sparkles, Trash2, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { ToolCallCard } from "@/components/chat/ToolCallCard";
 
 import type { Message } from "@/api";
 
@@ -124,51 +118,5 @@ function Avatar({ kind }: { kind: "user" | "assistant" }) {
     <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
       <Sparkles className="h-4 w-4" />
     </span>
-  );
-}
-
-function toolSummary(input: Record<string, unknown>): string {
-  // Give a concise, meaningful one-liner instead of always dumping JSON.
-  const cmd = input.command;
-  if (typeof cmd === "string") return cmd;
-  const fp = input.file_path;
-  if (typeof fp === "string") return fp;
-  if (typeof input.path === "string") return input.path;
-  return "";
-}
-
-function ToolCallCard({
-  name,
-  input,
-}: {
-  name: string;
-  input: Record<string, unknown>;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const summary = toolSummary(input);
-  return (
-    <div className="rounded-lg border border-border bg-background/60">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-1.5 px-3 py-1 text-[11px] text-muted-foreground text-left hover:bg-muted/40"
-        title={name}
-      >
-        {expanded ? (
-          <ChevronDown className="h-3 w-3 flex-shrink-0" />
-        ) : (
-          <ChevronRight className="h-3 w-3 flex-shrink-0" />
-        )}
-        <span className="font-medium">{name}</span>
-        {summary && (
-          <span className="truncate text-foreground/60">{summary}</span>
-        )}
-      </button>
-      {expanded && (
-        <pre className="text-[11px] font-mono bg-black/5 dark:bg-white/5 px-3 py-2 rounded-b-lg overflow-auto max-h-60 border-t border-border">
-          {JSON.stringify(input, null, 2)}
-        </pre>
-      )}
-    </div>
   );
 }
