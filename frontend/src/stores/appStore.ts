@@ -13,8 +13,11 @@ interface AppState {
   language: "zh" | "en";
   theme: Theme;
   shellId: string | null;
-  loadingSessionId: string | null;
-  setLoadingSessionId: (sessionId: string | null) => void;
+  /** Sessions currently processing (Claude thinking/writing). A set so the
+      rainbow halo and sidebar indicators can light up for several parallel
+      sessions at the same time. */
+  loadingSessions: Set<string>;
+  setLoading: (sessionId: string, busy: boolean) => void;
   setProjects: (projects: Project[]) => void;
   selectProject: (projectId: string | null) => void;
   setSessions: (sessions: Session[]) => void;
@@ -51,7 +54,7 @@ export const useAppStore = create<AppState>((set) => ({
   language: "zh",
   theme: storedTheme,
   shellId: null,
-  loadingSessionId: null,
+  loadingSessions: new Set<string>(),
 
   setProjects: (projects) => set({ projects }),
   selectProject: (projectId) =>
@@ -104,5 +107,13 @@ export const useAppStore = create<AppState>((set) => ({
     set({ theme });
   },
   setShellId: (shellId) => set({ shellId }),
-  setLoadingSessionId: (sessionId) => set({ loadingSessionId: sessionId }),
+  setLoading: (sessionId, busy) =>
+    set((state) => {
+      const has = state.loadingSessions.has(sessionId);
+      if (busy === has) return state;
+      const next = new Set(state.loadingSessions);
+      if (busy) next.add(sessionId);
+      else next.delete(sessionId);
+      return { loadingSessions: next };
+    }),
 }));

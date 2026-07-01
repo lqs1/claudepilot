@@ -1,10 +1,11 @@
-import { Plus, Terminal } from "lucide-react";
+import { Plus, Terminal, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { NuminaInput } from "@/components/ui/numina-input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BroadcastDialog } from "@/components/chat/BroadcastDialog";
 import { ChatPage } from "@/pages/ChatPage";
 import { ChangesPage } from "@/pages/ChangesPage";
 import { FileBrowserPage } from "@/pages/FileBrowserPage";
@@ -17,10 +18,12 @@ type TabKey = "chat" | "files" | "terminal" | "changes";
 
 function SidebarNavItem({
   active,
+  busy,
   onClick,
   children,
 }: {
   active: boolean;
+  busy?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -36,7 +39,17 @@ function SidebarNavItem({
       {active && (
         <span className="absolute left-0 top-1/2 h-[60%] w-[3px] -translate-y-1/2 rounded-r bg-white/70" />
       )}
-      <span className="relative z-10">{children}</span>
+      <span className="relative z-10 flex items-center gap-2">
+        <span className="truncate">{children}</span>
+        {busy && (
+          <span
+            className={`ml-auto h-1.5 w-1.5 flex-shrink-0 animate-pulse rounded-full ${
+              active ? "bg-white" : "bg-primary"
+            }`}
+            title="running"
+          />
+        )}
+      </span>
     </button>
   );
 }
@@ -51,7 +64,7 @@ export function HomePage() {
     messages,
     language,
     shellId,
-    loadingSessionId,
+    loadingSessions,
     setProjects,
     selectProject,
     setSessions,
@@ -66,6 +79,7 @@ export function HomePage() {
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
   const [newSessionTitle, setNewSessionTitle] = useState("");
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [showBroadcast, setShowBroadcast] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("chat");
 
   useEffect(() => {
@@ -153,6 +167,17 @@ export function HomePage() {
       console.error("Failed to create session", err);
     } finally {
       setIsCreatingSession(false);
+    }
+  };
+
+  const handleBroadcastDone = async () => {
+    setShowBroadcast(false);
+    if (selectedProjectId) {
+      // Broadcast created new sessions server-side; refresh the list and jump
+      // to the newest one so the user can watch results stream in.
+      await loadSessions(selectedProjectId);
+      const newest = useAppStore.getState().sessions[0];
+      if (newest) selectSession(newest.id);
     }
   };
 
@@ -272,6 +297,13 @@ export function HomePage() {
               onClose={() => setIsQuickOpenOpen(false)}
               onSelect={(path) => setOpenPath(path)}
             />
+            {showBroadcast && selectedProjectId && (
+              <BroadcastDialog
+                projectId={selectedProjectId}
+                language={language}
+                onDone={handleBroadcastDone}
+              />
+            )}
           </div>
 
           {/* Sessions */}
@@ -281,12 +313,20 @@ export function HomePage() {
                 <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-muted">
                   {t("session.title")}
                 </span>
+                <button
+                  onClick={() => setShowBroadcast(true)}
+                  title={t("broadcast.title") || "并行广播"}
+                  className="rounded-md p-1 text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg"
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                </button>
               </div>
               <div className="space-y-1">
                 {sessions.map((session) => (
                   <SidebarNavItem
                     key={session.id}
                     active={selectedSessionId === session.id}
+                    busy={loadingSessions.has(session.id)}
                     onClick={() => selectSession(session.id)}
                   >
                     {session.title}
@@ -363,7 +403,8 @@ export function HomePage() {
                   card and stay visible (the chat card itself is overflow:hidden
                   and would clip a glow on its own root). */}
               {activeTab === "chat" &&
-                loadingSessionId === selectedSessionId && (
+                selectedSessionId &&
+                loadingSessions.has(selectedSessionId) && (
                   <div className="tech-rainbow-glow pointer-events-none absolute inset-2 z-0 rounded-xl" />
                 )}
               <div

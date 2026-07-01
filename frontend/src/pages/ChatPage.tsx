@@ -101,7 +101,6 @@ export function ChatPage() {
     addMessage,
     setMessages,
     removeTurn,
-    setLoadingSessionId,
     language,
   } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -194,22 +193,14 @@ export function ChatPage() {
     onPlan: handlePlan,
   };
 
-  const { subscribe, unsubscribe, status } = useWebSocket(wsHandler);
+  const { subscribe, unsubscribe, getStatus } = useWebSocket(wsHandler);
   const sessionMessages = selectedSessionId
     ? messages[selectedSessionId] || []
     : [];
 
-  // The rainbow halo tracks the live WS status: on while Claude is thinking/
-  // writing, off as soon as it returns to idle (or errors). Published into the
-  // global store so HomePage can render the halo as a stable layer around the
-  // chat card (not clipped by the chat panel's own overflow:hidden).
-  useEffect(() => {
-    setLoadingSessionId(
-      selectedSessionId && (status === "thinking" || status === "writing")
-        ? selectedSessionId
-        : null,
-    );
-  }, [selectedSessionId, status, setLoadingSessionId]);
+  // The selected session's live status (drives the status badge). The halo
+  // and sidebar busy indicators are driven globally by useWebSocket.
+  const status = selectedSessionId ? getStatus(selectedSessionId) : null;
 
   const loadMessages = useCallback(
     async (sessionId: string) => {

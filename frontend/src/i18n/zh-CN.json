@@ -10,6 +10,12 @@
     "stopBeforeDelete": "删除前请先停止会话",
     "confirmDeleteTurn": "删除这一轮对话及其回复？该操作会同时从 CLI 历史中移除。"
   },
+  "broadcast": {
+    "title": "并行广播",
+    "selectPresets": "选择预设（每个预设开一个并行会话）",
+    "noPresets": "还没有预设。先在某个会话的设置里用「存为预设」创建。",
+    "willStart": "将启动"
+  },
   "changes": {
     "empty": "该会话还没有文件变更。"
   },
@@ -41,6 +47,7 @@
     "toolsEnabled": "启用工具",
     "unlimited": "无限制",
     "save": "保存",
+    "send": "发送",
     "cancel": "取消",
     "saving": "保存中...",
     "loading": "加载中...",

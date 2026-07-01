@@ -33,10 +33,13 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
   const pendingSubscriptions = useRef<Set<string>>(new Set());
   const seenMessageIds = useRef<Record<string, Set<string>>>({});
   const sessionHasAssistantContent = useRef<Record<string, boolean>>({});
-  const [status, setStatus] = useState<ClaudeStatus>(null);
+  // Per-session status so several parallel sessions can each be tracked at
+  // once. Drives the global loadingSessions set (halo/sidebar indicators).
+  const [statuses, setStatuses] = useState<Record<string, ClaudeStatus>>({});
 
   const addMessage = useAppStore((state) => state.addMessage);
   const updateMessage = useAppStore((state) => state.updateMessage);
+  const setLoading = useAppStore((state) => state.setLoading);
 
   // Active subscriptions survive reconnects.
   const activeSubscriptions = useRef<Set<string>>(new Set());
@@ -108,12 +111,17 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
   }, []);
 
   const unsubscribe = useCallback((sessionId: string) => {
-    if (currentSessionIdRef.current === sessionId) {
-      currentSessionIdRef.current = null;
-      setStatus(null);
-    }
     activeSubscriptions.current.delete(sessionId);
     pendingSubscriptions.current.delete(sessionId);
+    // Drop this session's status so it no longer reads as busy, and sync the
+    // global loading set.
+    setStatuses((prev) => {
+      if (!(sessionId in prev)) return prev;
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    setLoading(sessionId, false);
     // Clear session tracking state when unsubscribing to prevent stale data
     delete sessionHasAssistantContent.current[sessionId];
     delete seenMessageIds.current[sessionId];
@@ -205,9 +213,13 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
       currentHandler?.onPermissionRequest?.(sessionId, data);
     } else if (eventType === "status") {
       const nextStatus = (data.status as ClaudeStatus) || null;
-      if (currentSessionIdRef.current === sessionId) {
-        setStatus(nextStatus);
-      }
+      // Record status per session so multiple parallel sessions are tracked
+      // independently, and mirror busy state into the global loading set.
+      setStatuses((prev) => ({ ...prev, [sessionId]: nextStatus }));
+      setLoading(
+        sessionId,
+        nextStatus === "thinking" || nextStatus === "writing",
+      );
       currentHandler?.onStatus?.(sessionId, data);
     } else if (eventType === "plan") {
       currentHandler?.onPlan?.(sessionId, data);
@@ -250,5 +262,9 @@ export function useWebSocket(handler?: ClaudeEventHandler) {
     };
   }, [connect]);
 
-  return { subscribe, unsubscribe, status };
+  return {
+    subscribe,
+    unsubscribe,
+    getStatus: (sessionId: string) => statuses[sessionId] ?? null,
+  };
 }

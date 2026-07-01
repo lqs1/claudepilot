@@ -62,6 +62,16 @@ export const sessionApi = {
       title,
       language,
     }),
+  broadcast: (
+    projectId: string,
+    prompt: string,
+    configurations: Array<{ preset_id?: string; title?: string }>,
+    language: "zh" | "en" = "zh",
+  ) =>
+    api.post<{ sessions: Session[] }>(
+      `/projects/${projectId}/sessions/broadcast`,
+      { prompt, configurations, language },
+    ),
 };
 
 export const messageApi = {

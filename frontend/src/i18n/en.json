@@ -10,6 +10,12 @@
     "stopBeforeDelete": "Stop the session before deleting",
     "confirmDeleteTurn": "Delete this turn and its reply? This also removes it from the CLI history."
   },
+  "broadcast": {
+    "title": "Broadcast",
+    "selectPresets": "Pick presets — each opens one parallel session",
+    "noPresets": "No presets yet. Create some in a session's settings (Save as Preset).",
+    "willStart": "Will start"
+  },
   "changes": {
     "empty": "No file changes in this session yet."
   },
@@ -41,6 +47,7 @@
     "toolsEnabled": "Enable Tools",
     "unlimited": "Unlimited",
     "save": "Save",
+    "send": "Send",
     "cancel": "Cancel",
     "saving": "Saving...",
     "loading": "Loading...",
